@@ -1,0 +1,117 @@
+/*
+ * Copyright 2011-2035 詹波 (aifei.cn)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cn.aifei.db.generator;
+
+import cn.aifei.enjoy.util.StrUtil;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * JavaKeyword.
+ */
+public class JavaKeyword {
+
+    private Set<String> set;
+    public static final JavaKeyword me = createSharedInstance();
+
+    private String[] getKeywordArray() {
+        return new String[]{
+                "abstract",
+                "assert",
+                "boolean",
+                "break",
+                "byte",
+                "case",
+                "catch",
+                "char",
+                "class",
+                "const",
+                "continue",
+                "default",
+                "do",
+                "double",
+                "else",
+                "enum",
+                "extends",
+                "final",
+                "finally",
+                "float",
+                "for",
+                "goto",
+                "if",
+                "implements",
+                "import",
+                "instanceof",
+                "int",
+                "interface",
+                "long",
+                "native",
+                "new",
+                "package",
+                "private",
+                "protected",
+                "public",
+                "return",
+                "strictfp",
+                "short",
+                "static",
+                "super",
+                "switch",
+                "synchronized",
+                "this",
+                "throw",
+                "throws",
+                "transient",
+                "try",
+                "void",
+                "volatile",
+                "while"
+        };
+    }
+
+    private static JavaKeyword createSharedInstance() {
+        JavaKeyword jk = new JavaKeyword();
+        jk.set = Collections.unmodifiableSet(jk.set);    // 共享对象不让修改
+        return jk;
+    }
+
+    public JavaKeyword() {
+        set = new HashSet<>();
+        set.addAll(Arrays.asList(getKeywordArray()));
+    }
+
+    public JavaKeyword addKeyword(String keyword) {
+        if (StrUtil.notBlank(keyword)) {
+            set.add(keyword);
+        }
+        return this;
+    }
+
+    public JavaKeyword removeKeyword(String keyword) {
+        set.remove(keyword);
+        return this;
+    }
+
+    public boolean contains(String str) {
+        return set.contains(str);
+    }
+}
+
+
+

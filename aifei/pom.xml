@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cn.aifei</groupId>
+        <artifactId>aifei-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>aifei</artifactId>
+    <packaging>jar</packaging>
+
+    <name>aifei</name>
+    <description>Aifei core module</description>
+
+    <build>
+        <plugins>
+            <!--
+                aifei-all 模块无法使用 maven-source-plugin 与 maven-javadoc-plugin 打包，
+                需要各子模块而非 parent 模块中独立配置这两个插件使用。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
