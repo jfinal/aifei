@@ -18,6 +18,7 @@ package cn.aifei.enjoy.util;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Method;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -42,6 +43,7 @@ public class InstanceUtil {
 
     static final Method PRIVATE_LOOKUP_IN = findPrivateLookupIn();
     static final ComputeCache<Class<?>, Supplier<?>> CACHE = new ComputeCache<>(512);
+    static final ConcurrentHashMap<Class<?>, Supplier<?>> FACTORY_CACHE = new ConcurrentHashMap<>(64);
 
     static boolean jit = true;
 
@@ -61,8 +63,27 @@ public class InstanceUtil {
         InstanceUtil.jit = jit;
     }
 
+    /**
+     * 为指定类型注册自定义工厂
+     */
+    public static <T> void setFactory(Class<T> type, Supplier<T> factory) {
+        FACTORY_CACHE.put(type, factory);
+    }
+
+    /**
+     * 移除自定义工厂
+     */
+    public static <T> void removeFactory(Class<T> type) {
+        FACTORY_CACHE.remove(type);
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> T get(Class<T> type) {
+        Supplier<?> factory = FACTORY_CACHE.get(type);
+        if (factory != null) {
+            return (T) factory.get();
+        }
+
         if (jit) {
             return ((Supplier<T>) CACHE.computeIfAbsent(type, InstanceUtil::createSupplier)).get();
         } else {
