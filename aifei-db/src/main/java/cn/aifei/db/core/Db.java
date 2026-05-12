@@ -119,7 +119,7 @@ public class Db {
         return use().deleteBy(table, whereOrField, paraArray);
     }
 
-    public static int deleteInIds(String table, Collection<Object> ids) {
+    public static int deleteInIds(String table, Collection<?> ids) {
         return use().deleteInIds(table, ids);
     }
 
@@ -127,7 +127,7 @@ public class Db {
         return use().deleteInIds(table, idValues);
     }
 
-    public static int deleteIn(String table, String field, Collection<Object> fieldValues) {
+    public static int deleteIn(String table, String field, Collection<?> fieldValues) {
         return use().deleteIn(table, field, fieldValues);
     }
 
@@ -362,7 +362,7 @@ public class Db {
         return use().findFirstBy(table, whereOrField, paraArray);
     }
 
-    public static List<Row> findInIds(String table, Collection<Object> ids) {
+    public static List<Row> findInIds(String table, Collection<?> ids) {
         return use().findInIds(table, ids);
     }
 
@@ -373,7 +373,7 @@ public class Db {
     /**
      * 生成 select ... from table where field in(...) 进行查询。
      */
-    public static List<Row> findIn(String table, String field, Collection<Object> fieldValues) {
+    public static List<Row> findIn(String table, String field, Collection<?> fieldValues) {
         return use().findIn(table, field, fieldValues);
     }
 
