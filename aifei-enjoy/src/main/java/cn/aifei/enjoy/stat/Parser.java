@@ -18,6 +18,7 @@ package cn.aifei.enjoy.stat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import cn.aifei.enjoy.Directive;
 import cn.aifei.enjoy.EngineConfig;
 import cn.aifei.enjoy.Env;
@@ -39,6 +40,12 @@ public class Parser {
     private StringBuilder content;
     private String fileName;
     private Env env;
+
+    private static Function<Class<? extends Directive>, Directive> directiveFactory;
+
+    public static void setDirectiveFactory(Function<Class<? extends Directive>, Directive> directiveFactory) {
+        Parser.directiveFactory = directiveFactory;
+    }
 
     public Parser(Env env, StringBuilder content, String fileName) {
         this.env = env;
@@ -264,8 +271,13 @@ public class Parser {
 
     private Stat createDirective(Class<? extends Directive> dire, Token name) {
         try {
-            // return dire.newInstance();
-            return InstanceUtil.get(dire);
+            if (directiveFactory != null) {
+                return directiveFactory.apply(dire);
+            } else {
+                // return dire.newInstance();
+                return InstanceUtil.get(dire);
+            }
+
         } catch (Exception e) {
             throw new ParseException(e.getMessage(), getLocation(name.row), e);
         }

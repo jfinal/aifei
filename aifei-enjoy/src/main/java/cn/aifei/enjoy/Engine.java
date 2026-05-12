@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import cn.aifei.enjoy.util.StrUtil;
 import cn.aifei.enjoy.expr.ast.FieldGetter;
 import cn.aifei.enjoy.expr.ast.FieldKeyBuilder;
@@ -780,6 +781,13 @@ public class Engine {
      */
     public List<String> getSharedFunctionNames() {
         return new ArrayList<>(config.sharedFunctionMap.keySet());
+    }
+
+    /**
+     * 设置指令创建工厂
+     */
+    public static void setDirectiveFactory(Function<Class<? extends Directive>, Directive> directiveFactory) {
+        Parser.setDirectiveFactory(directiveFactory);
     }
 }
 
