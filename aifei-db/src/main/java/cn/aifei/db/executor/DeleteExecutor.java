@@ -136,7 +136,7 @@ public class DeleteExecutor {
     /**
      * 支持 where field in (?, ?, ....?) 删除
      */
-    public int deleteIn(AifeiDao<?, ?> dao, String table, String field, Collection<Object> fieldValues) {
+    public int deleteIn(AifeiDao<?, ?> dao, String table, String field, Collection<?> fieldValues) {
         if (fieldValues == null || fieldValues.isEmpty()) {
             return 0;
         }

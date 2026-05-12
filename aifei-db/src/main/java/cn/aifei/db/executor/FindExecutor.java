@@ -132,7 +132,7 @@ public class FindExecutor {
     /**
      * 支持 where field in (?, ?, ....?) 查询
      */
-    public <T extends AifeiRow<T>> List<T> findIn(AifeiDao<?, T> dao, String table, String field, Collection<Object> fieldValues) {
+    public <T extends AifeiRow<T>> List<T> findIn(AifeiDao<?, T> dao, String table, String field, Collection<?> fieldValues) {
         if (fieldValues == null || fieldValues.isEmpty()) {
             return new ArrayList<>(0);
         }
