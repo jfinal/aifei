@@ -70,7 +70,7 @@ public class Dao extends AifeiDao<Dao, Row> {
     //     return config.deleteExecutor.deleteBy(this, table, field, new Object[]{value});
     // }
 
-    public int deleteInIds(String table, Collection<Object> ids) {
+    public int deleteInIds(String table, Collection<?> ids) {
         String primaryKey = config.dialect.getDefaultPrimaryKey()[0];
         return config.deleteExecutor.deleteIn(this, table, primaryKey, ids);
     }
@@ -80,7 +80,7 @@ public class Dao extends AifeiDao<Dao, Row> {
         return config.deleteExecutor.deleteIn(this, table, primaryKey, Arrays.asList(idValues));
     }
 
-    public int deleteIn(String table, String field, Collection<Object> fieldValues) {
+    public int deleteIn(String table, String field, Collection<?> fieldValues) {
         return config.deleteExecutor.deleteIn(this, table, field, fieldValues);
     }
 
@@ -179,7 +179,7 @@ public class Dao extends AifeiDao<Dao, Row> {
      * <p>
      * 注意：不支持复合主键
      */
-    public List<Row> findInIds(String table, Collection<Object> ids) {
+    public List<Row> findInIds(String table, Collection<?> ids) {
         String primaryKey = config.dialect.getDefaultPrimaryKey()[0];
         return config.findExecutor.findIn(this, table, primaryKey, ids);
     }
@@ -197,7 +197,7 @@ public class Dao extends AifeiDao<Dao, Row> {
     /**
      * 生成 select ... from table where field in(...) 进行查询。
      */
-    public List<Row> findIn(String table, String field, Collection<Object> fieldValues) {
+    public List<Row> findIn(String table, String field, Collection<?> fieldValues) {
         return config.findExecutor.findIn(this, table, field, fieldValues);
     }
 
