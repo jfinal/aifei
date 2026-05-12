@@ -303,7 +303,7 @@ public class Condition {
         return Collections.emptyList();
     }
 
-    void generateInOrNotIn(Writer writer, boolean[] firstCondition, SqlPara sqlPara, List<Object> list) {
+    void generateInOrNotIn(Writer writer, boolean[] firstCondition, SqlPara sqlPara, List<?> list) {
         if (!list.isEmpty()) {
             generateConditionHead(writer, firstCondition);
             write(writer, "(");
@@ -322,7 +322,7 @@ public class Condition {
     }
 
     // BETWEEN、NOT BETWEEN 要求参数为长度等于 2 的数组或 Collection，且两个元素都不为 null 时才生成 SQL
-    void generateBetweenOrNotBetween(Writer writer, boolean[] firstCondition, SqlPara sqlPara, List<Object> list) {
+    void generateBetweenOrNotBetween(Writer writer, boolean[] firstCondition, SqlPara sqlPara, List<?> list) {
         if (list.size() != 2) {
             throw new TemplateException(operator.sql() + " requires exactly 2 arguments, but got: " + list.size(), location);
         }
