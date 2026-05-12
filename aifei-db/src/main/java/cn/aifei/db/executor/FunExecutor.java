@@ -63,7 +63,7 @@ public class FunExecutor {
             return dao.config().getSqlKit().getSqlParaById(sqlId, data);
         }
 
-        public void fillStatement(PreparedStatement pst, List<Object> paras) throws SQLException {
+        public void fillStatement(PreparedStatement pst, List<?> paras) throws SQLException {
             dao.config().getDialect().fillStatement(pst, paras);
         }
 
