@@ -172,7 +172,7 @@ public abstract class #(tableInfo.baseModelName)<T extends #(tableInfo.baseModel
 
     ### 仅单主键时生成 deleteInIds 方法
     #if (tableInfo.primaryKey.length == 1)
-    public static int deleteInIds(Collection<Object> ids) {
+    public static int deleteInIds(Collection<?> ids) {
         return dao().deleteInIds(ids);
     }
 
@@ -242,7 +242,7 @@ public abstract class #(tableInfo.baseModelName)<T extends #(tableInfo.baseModel
 
     ### 仅单主键时生成 findInIds 方法
     #if (tableInfo.primaryKey.length == 1)
-    public static List<#(tableInfo.modelName)> findInIds(Collection<Object> ids) {
+    public static List<#(tableInfo.modelName)> findInIds(Collection<?> ids) {
         return dao().findInIds(ids);
     }
 
