@@ -102,7 +102,7 @@ public abstract class BaseDao<D extends AifeiDao<D, R>, R extends AifeiRow<R>> e
      * <p>
      * 例子：User.deleteInIds(Arrays.asList(1, 2, 3))
      */
-    public int deleteInIds(Collection<Object> ids) {
+    public int deleteInIds(Collection<?> ids) {
         return config.getDeleteExecutor().deleteIn(this, table.name, table.primaryKey[0], ids);
     }
 
@@ -120,7 +120,7 @@ public abstract class BaseDao<D extends AifeiDao<D, R>, R extends AifeiRow<R>> e
      * <p>
      * 例子：User.deleteIn("name", Arrays.asList("james", "jason"))
      */
-    public int deleteIn(String field, Collection<Object> fieldValues) {
+    public int deleteIn(String field, Collection<?> fieldValues) {
         return config.getDeleteExecutor().deleteIn(this, table.name, field, fieldValues);
     }
 
@@ -202,7 +202,7 @@ public abstract class BaseDao<D extends AifeiDao<D, R>, R extends AifeiRow<R>> e
     /**
      * 例子：User.select("id, name, age").findInIds(Arrays.asList(1, 2, 3))
      */
-    public List<R> findInIds(Collection<Object> ids) {
+    public List<R> findInIds(Collection<?> ids) {
         return config.getFindExecutor().findIn(this, table.name, table.primaryKey[0], ids);
     }
 
@@ -216,7 +216,7 @@ public abstract class BaseDao<D extends AifeiDao<D, R>, R extends AifeiRow<R>> e
     /**
      * 例子：User.select("id, name, age").findIn("age", Arrays.asList(18, 19, 20))
      */
-    public List<R> findIn(String field, Collection<Object> fieldValues) {
+    public List<R> findIn(String field, Collection<?> fieldValues) {
         return config.getFindExecutor().findIn(this, table.name, field, fieldValues);
     }
 
