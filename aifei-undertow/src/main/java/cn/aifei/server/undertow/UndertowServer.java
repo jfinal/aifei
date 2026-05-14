@@ -165,7 +165,6 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
     }
 
     protected void doStart() {
-        // 配置最优先
         if (configConsumer != null) {
             configConsumer.accept(config);
             configConsumer = null;			// 配置在整个生命周期只能调用一次
@@ -202,12 +201,11 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
      *      java -Dundertow.port=8080 -Dundertow.host=0.0.0.0 -jar jfinal-club-release.jar
      *
      *   -- 双减号格式传参：
-     *      java --undertow.port=8080
+     *      java --undertow.port=8080 --undertow.host=0.0.0.0 -jar jfinal-club-release.jar
      *
      * 传参注意事项：
-     * 1：传参规则由 java 命令行给定，与 jfinal undertow 项目完全无关
-     * 2：传参以 "-D" 为前缀，并且该前缀与后方的参数名之间不能有空格
-     * 3：参数名与参数值中间用等号字符分格，且等号前后不能空格
+     * 1：传参以 "-D" 或者 "--" 为前缀，并且前缀与后方的参数名之间不能有空格
+     * 2：参数名与参数值中间用等号字符分格，且等号前后不能空格
      */
     protected void loadCommandLineParameter() {
         String port = System.getProperty(PORT);
