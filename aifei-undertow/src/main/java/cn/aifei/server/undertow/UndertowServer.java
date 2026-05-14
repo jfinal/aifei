@@ -198,10 +198,10 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
      *
      * 使用示例：
      *   -D 格式传参：
-     *      java -Dundertow.port=8080 -Dundertow.host=0.0.0.0 -jar jfinal-club-release.jar
+     *      java -Dundertow.port=8080 -Dundertow.host=0.0.0.0 -jar aifei-vip.jar
      *
      *   -- 双减号格式传参：
-     *      java --undertow.port=8080 --undertow.host=0.0.0.0 -jar jfinal-club-release.jar
+     *      java --undertow.port=8080 --undertow.host=0.0.0.0 -jar aifei-vip.jar
      *
      * 传参注意事项：
      * 1：传参以 "-D" 或者 "--" 为前缀，并且前缀与后方的参数名之间不能有空格
