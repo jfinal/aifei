@@ -33,6 +33,7 @@ public class SqlPara implements Serializable {
     List<Object> paraList;
 
     boolean enjoySql = false;
+    transient long execStartTime;
 
     public SqlPara() {}
 
@@ -134,6 +135,7 @@ public class SqlPara implements Serializable {
         id = null;
         sql = null;
         enjoySql = false;
+        execStartTime = 0;
         if (paraList != null) {
             paraList.clear();
         }

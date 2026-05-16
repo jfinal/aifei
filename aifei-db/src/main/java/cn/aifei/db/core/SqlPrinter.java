@@ -90,31 +90,48 @@ public class SqlPrinter {
         return this;
     }
 
-    public void print(SqlPara sqlPara) {
-        if (!printSql || (printSqlToLog && !log.isInfoEnabled())) {
-            return;
+    /**
+     * 标记 sql 执行开始时间，供 print(...) 输出执行耗时
+     */
+    public void markExecStart(SqlPara sqlPara) {
+        if (printSql && sqlPara != null) {
+            sqlPara.execStartTime = System.currentTimeMillis();
         }
+    }
 
+    public void print(SqlPara sqlPara) {
+        if (printSql && sqlPara != null) {
+            if (printSqlToLog) {
+                if (log.isInfoEnabled()) {
+                    log.info(buildPrintInfo(sqlPara));
+                }
+            } else {
+                System.out.println(buildPrintInfo(sqlPara));
+            }
+        }
+    }
+
+    protected String buildPrintInfo(SqlPara sqlPara) {
         String sql = formatSql ? sqlFormatter.apply(sqlPara.getSql()) : sqlPara.getSql();
         List<Object> paraList = sqlPara.getPara();
         int paraCount = paraList != null ? paraList.size() : 0;
 
-        StringBuilder sb = new StringBuilder(sql.length() + paraCount * 16 + 32);
-        sb.append("SQL: ").append(sql).append("\nPARA: [");
+        StringBuilder sb = new StringBuilder(sql.length() + paraCount * 16 + 50);
+        sb.append("\nSQL: ").append(sql).append("\nPARA: [");
         for (int i = 0; i < paraCount; i++) {
             if (i > 0) {
                 sb.append(", ");
             }
             sb.append(paraList.get(i));
         }
-        sb.append("]");
+        sb.append("]\n");
 
-        if (printSqlToLog) {
-            // log.info(sb.insert(0, '\n').toString());
-            log.info(sb.toString());
-        } else {
-            System.out.println(sb.toString());
+        if (sqlPara.execStartTime > 0) {
+            long timeSpent = System.currentTimeMillis() - sqlPara.execStartTime;
+            sb.append("TIME: ").append(timeSpent).append(" ms\n");
         }
+
+        return sb.toString();
     }
 }
 
