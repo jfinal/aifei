@@ -76,15 +76,18 @@ public class BatchInsertExecutor {
     private <T extends AifeiRow<T>> BatchResult batchInsert(Transaction<BatchResult> transaction, Batch batch, Map<String, BatchGroup<T>> batchGroupMap) {
         BatchResult batchResult = new BatchResult();
         DbConfig config = batch.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
+
         Dialect dialect = config.getDialect();
 
         PreparedStatement preparedStatement = null;
+        SqlPara sqlPara = null;
         try {
             Connection connection = transaction.getConnection();
             for (Map.Entry<String, BatchGroup<T>> entry : batchGroupMap.entrySet()) {
                 BatchGroup<T> batchGroup = entry.getValue();
                 List<T> rowList = batchGroup.getRowList();
-                SqlPara sqlPara = dialect.insert(rowList.get(0));
+                sqlPara = dialect.insert(rowList.get(0));
 
                 if (batch.getGeneratedKeys()) {
                     preparedStatement = dialect.prepareStatementForReturnGeneratedKeys(connection, sqlPara.getSql(), rowList.get(0).primaryKey());
@@ -98,13 +101,14 @@ public class BatchInsertExecutor {
                 int batchSize = batch.batchSize() != null ? batch.batchSize() : rowListSize;
                 for (int i = 0; i < rowListSize; i++) {
                     sqlPara = dialect.insert(rowList.get(i));
-                    config.getSqlPrinter().print(sqlPara);
 
                     dialect.fillStatement(preparedStatement, sqlPara.getPara());
                     preparedStatement.addBatch();
                     count++;
 
                     if (count % batchSize == 0 || count >= rowListSize) {
+                        sqlPrinter.markExecStart(sqlPara);
+
                         int[] updateCounts = preparedStatement.executeBatch();
                         if (batch.commitOnBatchSize()) {
                             connection.commit();
@@ -132,6 +136,9 @@ public class BatchInsertExecutor {
                         }
 
                         batchBegin = i + 1;
+
+                        // 每个 batch 只打印一次
+                        sqlPrinter.print(sqlPara);
                     }
                 }
             }
@@ -139,13 +146,23 @@ public class BatchInsertExecutor {
 
         } catch (Exception e) {
             transaction.rollback();
+            printSql(sqlPrinter, sqlPara);
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(null, preparedStatement, null);
         }
     }
+
+    // 避免打印 SQL 时抛出的异常覆盖原始异常
+    private void printSql(SqlPrinter sqlPrinter, SqlPara sqlPara) {
+        if (sqlPrinter.isPrintSql() && sqlPara != null) {
+            try {
+                sqlPrinter.print(sqlPara);
+            } catch (Exception ignored) {
+
+            }
+        }
+    }
 }
-
-
 
 

@@ -53,9 +53,12 @@ public class BatchExecutor {
     private BatchResult batchExecute(Transaction<BatchResult> transaction, Batch batch) {
         BatchResult batchResult = new BatchResult();
         DbConfig config = batch.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
+
         Dialect dialect = config.getDialect();
 
         PreparedStatement preparedStatement = null;
+        SqlPara sqlPara = null;
         try {
             Connection connection = transaction.getConnection();
 
@@ -70,8 +73,7 @@ public class BatchExecutor {
             int parasListSize = batch.parasList().size();
             int batchSize = batch.batchSize() != null ? batch.batchSize() : parasListSize;
             for (Object[] paras : batch.parasList()) {
-                SqlPara sqlPara = createSqlPara(batch.sql(), paras);
-                config.getSqlPrinter().print(sqlPara);
+                sqlPara = createSqlPara(batch.sql(), paras);
 
                 dialect.fillStatement(preparedStatement, sqlPara.getPara());
                 preparedStatement.addBatch();
@@ -81,6 +83,8 @@ public class BatchExecutor {
                 preparedStatement.clearParameters();
 
                 if (count % batchSize == 0 || count >= parasListSize) {
+                    sqlPrinter.markExecStart(sqlPara);
+
                     int[] updateCounts = preparedStatement.executeBatch();
                     if (batch.commitOnBatchSize()) {
                         connection.commit();
@@ -96,6 +100,9 @@ public class BatchExecutor {
                             }
                         }
                     }
+
+                    // 每个 batch 只打印一次
+                    sqlPrinter.print(sqlPara);
                 }
             }
 
@@ -103,6 +110,7 @@ public class BatchExecutor {
 
         } catch (Exception e) {
             transaction.rollback();
+            printSql(sqlPrinter, sqlPara);
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(null, preparedStatement, null);
@@ -136,6 +144,7 @@ public class BatchExecutor {
         SqlPrinter sqlPrinter = config.getSqlPrinter();
 
         Statement statement = null;
+        SqlPara sqlPara = null;
         try {
             Connection connection = transaction.getConnection();
             statement = connection.createStatement();
@@ -146,14 +155,15 @@ public class BatchExecutor {
             List<Object> emptyPara = Collections.emptyList();
             for (String sql : batch.sqlList()) {
                 if (sqlPrinter.isPrintSql()) {
-                    SqlPara sqlPara = new SqlPara(sql, emptyPara);
-                    sqlPrinter.print(sqlPara);
+                    sqlPara = new SqlPara(sql, emptyPara);
                 }
 
                 statement.addBatch(sql);
                 count++;
 
                 if (count % batchSize == 0 || count >= sqlListSize) {
+                    sqlPrinter.markExecStart(sqlPara);
+
                     int[] updateCounts = statement.executeBatch();
                     if (batch.commitOnBatchSize()) {
                         connection.commit();
@@ -169,6 +179,9 @@ public class BatchExecutor {
                             }
                         }
                     }
+
+                    // 每个 batch 只打印一次
+                    sqlPrinter.print(sqlPara);
                 }
             }
 
@@ -176,9 +189,21 @@ public class BatchExecutor {
 
         } catch (Exception e) {
             transaction.rollback();
+            printSql(sqlPrinter, sqlPara);
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(null, statement, null);
+        }
+    }
+
+    // 避免打印 SQL 时抛出的异常覆盖原始异常
+    private void printSql(SqlPrinter sqlPrinter, SqlPara sqlPara) {
+        if (sqlPrinter.isPrintSql() && sqlPara != null) {
+            try {
+                sqlPrinter.print(sqlPara);
+            } catch (Exception ignored) {
+
+            }
         }
     }
 }

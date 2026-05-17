@@ -31,12 +31,13 @@ public class UpdateExecutor {
      */
     public int execute(AifeiDao<?, ?> dao) {
         DbConfig config = dao.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
 
         UpdateHook updateHook = config.getDbHookKit().getUpdateHook();
         Object toAfterSqlUpdate = updateHook.beforeSqlUpdate(dao);
 
         SqlPara sqlPara = dao.sqlPara();
-        config.getSqlPrinter().print(sqlPara);
+        sqlPrinter.markExecStart(sqlPara);
 
         Connection connection = null;
         PreparedStatement preparedStatement = null;
@@ -51,6 +52,7 @@ public class UpdateExecutor {
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(null, preparedStatement, connection);
+            sqlPrinter.print(sqlPara);
         }
     }
 
@@ -95,9 +97,5 @@ public class UpdateExecutor {
         }
     }
 }
-
-
-
-
 
 

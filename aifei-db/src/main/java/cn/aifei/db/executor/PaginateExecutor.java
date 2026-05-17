@@ -71,13 +71,15 @@ public class PaginateExecutor {
      */
     private long queryTotalRows(AifeiDao<?, ?> dao, Boolean hasGroupBy, Connection connection) {
         DbConfig config = dao.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
+
         Dialect dialect = config.getDialect();
         SqlPara sqlPara = dialect.paginateTotalRows(dao.sqlPara());
 
         PaginateHook paginateHook = config.getDbHookKit().getPaginateHook();
         Object toAfterQueryTotalRows = paginateHook.beforeQueryTotalRows(dao, hasGroupBy, sqlPara);
 
-        config.getSqlPrinter().print(sqlPara);   // 输出新生成的 totalRows sql
+        sqlPrinter.markExecStart(sqlPara);
 
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
@@ -110,6 +112,7 @@ public class PaginateExecutor {
             throw e instanceof RuntimeException ? (RuntimeException) e : new AifeiDbException(e);
         } finally {
             config.closeConnection(resultSet, preparedStatement, null);
+            sqlPrinter.print(sqlPara);
         }
     }
 
@@ -126,13 +129,15 @@ public class PaginateExecutor {
         }
 
         DbConfig config = dao.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
+
         Dialect dialect = config.getDialect();
         SqlPara sqlPara = dialect.paginate(pageNum, pageSize, dao.sqlPara());
 
         PaginateHook paginateHook = config.getDbHookKit().getPaginateHook();
         Object toAfterPaginate = paginateHook.beforePaginate(dao, pageNum, pageSize, totalRows, sqlPara);
 
-        config.getSqlPrinter().print(sqlPara);   // 输出新生成的 paginate sql
+        sqlPrinter.markExecStart(sqlPara);
 
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
@@ -153,6 +158,7 @@ public class PaginateExecutor {
 
         } finally {
             config.closeConnection(resultSet, preparedStatement, null);
+            sqlPrinter.print(sqlPara);
         }
     }
 

@@ -23,7 +23,22 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * SqlPrinter 打印 sql 到控制台，提升开发体验。
+ * SqlPrinter 打印 sql 到控制台，提升开发体验
+ *
+ * <pre>
+ *  高级用法：
+ *
+ *     // 记录执行耗时，找到 "慢 SQL" 便于优化性能
+ *     public class SlowSqlPrinter extends SqlPrinter {
+ *         public void print(SqlPara sqlPara) {
+ *             long timeSpent = System.currentTimeMillis() - sqlPara.execStartTime;
+ *             System.out.println("将 timeSpent 异步写入数据库或缓存，便于找到慢 SQL: " + timeSpent);
+ *
+ *             // 如果仍需要打印 sql，调用父类 print
+ *             super.print(sqlPara);
+ *         }
+ *     }
+ * </pre>
  */
 public class SqlPrinter {
 

@@ -31,6 +31,8 @@ public class InsertExecutor {
      */
     public <T extends AifeiRow<T>> T execute(AifeiDao<?, T> dao, T row) {
         DbConfig config = dao.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
+
         Dialect dialect = config.getDialect();
         SqlPara sqlPara = dialect.insert(row);
         dao.sqlPara(sqlPara);                       // 供 hook 中取用
@@ -39,7 +41,7 @@ public class InsertExecutor {
         Object toAfterRowInsert = insertHook.beforeRowInsert(dao, row);
 
         sqlPara = dao.sqlPara();                    // 取出 hook 中可能修改过的 sqlPara 供后续使用
-        config.getSqlPrinter().print(sqlPara);      // 打印 sql 始终放在 hook 的 before 方法之前
+        sqlPrinter.markExecStart(sqlPara);
 
         Connection connection = null;
         PreparedStatement preparedStatement = null;
@@ -66,9 +68,9 @@ public class InsertExecutor {
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(resultSet, preparedStatement, connection);
+            sqlPrinter.print(sqlPara);
         }
     }
 }
-
 
 

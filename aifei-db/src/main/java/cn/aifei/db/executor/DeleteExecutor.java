@@ -32,12 +32,13 @@ public class DeleteExecutor {
      */
     public int execute(AifeiDao<?, ?> dao) {
         DbConfig config = dao.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
 
         DeleteHook deleteHook = config.getDbHookKit().getDeleteHook();
         Object toAfterSqlDelete = deleteHook.beforeSqlDelete(dao);
 
         SqlPara sqlPara = dao.sqlPara();
-        config.getSqlPrinter().print(sqlPara);
+        sqlPrinter.markExecStart(sqlPara);
 
         Connection connection = null;
         PreparedStatement preparedStatement = null;
@@ -52,6 +53,7 @@ public class DeleteExecutor {
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(null, preparedStatement, connection);
+            sqlPrinter.print(sqlPara);
         }
     }
 
@@ -176,8 +178,5 @@ public class DeleteExecutor {
         return execute(dao);
     }
 }
-
-
-
 
 

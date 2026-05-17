@@ -41,12 +41,13 @@ public class QueryExecutor {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public <T> List<T> execute(AifeiDao<?, ?> dao, boolean returnFirst) {
         DbConfig config = dao.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
 
         QueryHook queryHook = config.getDbHookKit().getQueryHook();
         Object toAfterQuery = queryHook.beforeQuery(dao);
 
         SqlPara sqlPara = dao.sqlPara();
-        config.getSqlPrinter().print(sqlPara);
+        sqlPrinter.markExecStart(sqlPara);
 
         Connection connection = null;
         PreparedStatement preparedStatement = null;
@@ -95,6 +96,7 @@ public class QueryExecutor {
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(resultSet, preparedStatement, connection);
+            sqlPrinter.print(sqlPara);
         }
     }
 
@@ -299,7 +301,5 @@ public class QueryExecutor {
     //     return execute(dao);
     // }
 }
-
-
 
 

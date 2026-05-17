@@ -33,12 +33,13 @@ public class FindExecutor {
 
     public <T extends AifeiRow<T>> List<T> execute(AifeiDao<?, T> dao, Function<T, Boolean> forEachFun) {
         DbConfig config = dao.config();
+        SqlPrinter sqlPrinter = config.getSqlPrinter();
 
         FindHook findHook = config.getDbHookKit().getFindHook();
         Object toAfterFind = findHook.beforeFind(dao);
 
         SqlPara sqlPara = dao.sqlPara();
-        config.getSqlPrinter().print(sqlPara);
+        sqlPrinter.markExecStart(sqlPara);
 
         Connection connection = null;
         PreparedStatement preparedStatement = null;
@@ -61,6 +62,7 @@ public class FindExecutor {
             throw new AifeiDbException(e);
         } finally {
             config.closeConnection(resultSet, preparedStatement, connection);
+            sqlPrinter.print(sqlPara);
         }
     }
 
@@ -193,7 +195,4 @@ public class FindExecutor {
         return execute(dao, null);
     }
 }
-
-
-
 
