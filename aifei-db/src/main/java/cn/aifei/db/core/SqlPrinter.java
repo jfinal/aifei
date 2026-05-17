@@ -121,7 +121,7 @@ public class SqlPrinter {
                     log.info(buildPrintInfo(sqlPara));
                 }
             } else {
-                System.out.println(buildPrintInfo(sqlPara));
+                System.out.print(buildPrintInfo(sqlPara));
             }
         }
     }
