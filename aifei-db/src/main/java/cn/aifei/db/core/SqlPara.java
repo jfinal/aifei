@@ -122,6 +122,10 @@ public class SqlPara implements Serializable {
         return enjoySql;
     }
 
+    public void setTimingStartTime(long timingStartTime) {
+        this.timingStartTime = timingStartTime;
+    }
+
     public long getTimingStartTime() {
         return timingStartTime;
     }
