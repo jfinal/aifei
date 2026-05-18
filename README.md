@@ -396,13 +396,13 @@ Aifei 的批量操作支持 Row / Model 参数名、参数数量都不相同的�
     List<Row> list = new ArrayList<>();
     list.add(new Row().set("age", 11));
     list.add(new Row().set("name", "测试123"));
-    Db.batch().insert("user", list);
+    Db.batchInsert("user", list);
 
     // 批量更新
     List<Row> list = new ArrayList<>();
     list.add(new Row().set("id", 1).set("age", 18));         // 更新 age
     list.add(new Row().set("id", 2).set("name", "测试456"));  // 更新 name
-    Db.batch().update("user", list);
+    Db.batchUpdate("user", list);
 ```
 
 Aifei 的批量操作支持参数结构不一致的场景。
