@@ -1,6 +1,6 @@
 package #(daoPackage);
 
-import cn.aifei.db.generator.BaseDao;
+import #(baseDaoFullName);
 import #(modelPackage).#(tableInfo.modelName);
 
 /**
@@ -24,7 +24,7 @@ import #(modelPackage).#(tableInfo.modelName);
  *  以上代码通过在 UserDao 中添加覆盖父类的 findById 方法，实现了优先从缓存中获取数据的功能
  * </pre>
  */
-public class #(tableInfo.daoName) extends BaseDao<#(tableInfo.daoName), #(tableInfo.modelName)> {
+public class #(tableInfo.daoName) extends #(baseDaoName)<#(tableInfo.daoName), #(tableInfo.modelName)> {
     public #(tableInfo.daoName)() {
         super(#(tableInfo.modelName).TABLE);
     }

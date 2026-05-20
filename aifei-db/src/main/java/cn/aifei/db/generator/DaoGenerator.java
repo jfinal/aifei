@@ -16,6 +16,7 @@
 
 package cn.aifei.db.generator;
 
+import cn.aifei.db.core.AifeiDao;
 import cn.aifei.db.dialect.Dialect;
 import cn.aifei.enjoy.Engine;
 import java.io.BufferedWriter;
@@ -38,8 +39,19 @@ public class DaoGenerator {
     String daoPackage;
     String daoPath;
 
+    Class<? extends AifeiDao> baseDao = BaseDao.class;
+
     Engine engine = new Engine().setToClassPathSourceFactory();
     String template = "/cn/aifei/db/generator/_dao_template.af";
+
+    /**
+     * 配置 BaseDao，用于定制 BaseDao 实现。默认值 cn.aifei.db.generator.BaseDao.class
+     */
+    public DaoGenerator setBaseDao(Class<? extends AifeiDao> baseDao) {
+        Objects.requireNonNull(baseDao, "baseDao can not be null.");
+        this.baseDao = baseDao;
+        return this;
+    }
 
     /**
      * 配置生成 dao 的 enjoy 模板文件
@@ -72,6 +84,8 @@ public class DaoGenerator {
             data.put("tableInfo", tableInfo);
             data.put("daoPackage", daoPackage);
             data.put("modelPackage", modelPackage);
+            data.put("baseDaoFullName", baseDao.getName());
+            data.put("baseDaoName", baseDao.getSimpleName());
             String content = engine.getTemplate(template).renderToString(data);
             writeToFile(tableInfo, content);
         }
