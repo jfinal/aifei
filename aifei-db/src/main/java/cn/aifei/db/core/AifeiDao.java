@@ -634,9 +634,16 @@ public class AifeiDao<D extends AifeiDao<D, R>, R extends AifeiRow<R>> {
      * <pre>
      * 例子：
      *    User.sql("select * from user").forEachPage(10, (Page<User> page) -> {
+     *
+     *        // page.getPageNum() 可获取当前页号
+     *        System.out.println("pageNum = " + page.getPageNum());
+     *
+     *        // 访问当前页
      *        for (User user : page.getRows()) {
      *            System.out.println(user.getName());
      *        }
+     *
+     *        // 返回 true 继续访问下一页，返回 false 结束访问
      *        return true;
      *    });
      * </pre>
