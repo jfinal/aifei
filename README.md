@@ -20,9 +20,9 @@ Just Service. Only Aifei can do.
 
 围绕 AI Coding 的模型、IDE 与各类工具快速发展，但从框架层面为 AI Coding 而设计的服务端 framework 仍然缺位。
 
-现有主流框架几乎都诞生于**人类手写代码**的时代，它们服务的是人类开发者的认知方式、组织方式与工程习惯。
+传统框架面向人类手写代码时代。Aifei 面向 AI Coding 时代。
 
-但 AI Coding 需要的第一性约束已经不同。AI 更需要的是：
+在 AI Coding 场景下，框架需要优先满足大模型对代码结构的需求：
 
 - 更少的 Token 消耗
 - 更高的 Attention 浓度
