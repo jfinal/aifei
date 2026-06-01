@@ -123,10 +123,15 @@ public class AppConfig implements AifeiConfig<In, Out> {
      * 插件配置
      */
     public void config(Plugins plugins) {
-        DruidSupplier druidSupplier = new DruidSupplier(p.get("jdbcUrl"), p.get("user"), p.get("password"));
-        AifeiDbPlugin dbPlugin = new AifeiDbPlugin("main", druidSupplier);
-        dbPlugin.addModelSet(new ModelSet());
-        dbPlugin.config(c -> c.setPrintSql(true));
+        DruidSupplier ds = new DruidSupplier(p.get("jdbcUrl"), p.get("user"), p.get("password"));
+        AifeiDbPlugin dbPlugin = new AifeiDbPlugin("main", ds);
+
+        dbPlugin.setDialect(new MysqlDialect());    // 配置方言
+        dbPlugin.addModelSet(new ModelSet());       // 添加生成的 Model 集合
+        dbPlugin.setPrintSql(true);                 // 配置打印 sql，便于排错与优化
+        dbPlugin.setFormatSql(false);               // 配置 sql 格式化
+        // dbPlugin.setPrintSqlToLog(true);         // 配置 sql 打印到日志文件，便于找到慢 SQL 进行优化
+        
         plugins.add(dbPlugin);
     }
 }
