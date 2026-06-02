@@ -156,7 +156,7 @@ public class DeleteExecutor {
 
     /**
      * deleteBy 支持用法:
-     *  1：deleteBy("name", "james);
+     *  1：deleteBy("name", "james");
      *  2：deleteBy("id > ? and age = ?", 5, 18);
      *  3：deleteBy("age = ?", 18);
      *  4：deleteBy("age = 18");
@@ -178,5 +178,3 @@ public class DeleteExecutor {
         return execute(dao);
     }
 }
-
-

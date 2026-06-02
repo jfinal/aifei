@@ -135,7 +135,7 @@ public class Dao extends AifeiDao<Dao, Row> {
      * <pre>
      * 例子：
      *  Db 用法需传入参数 table
-     *     Db.select("*").findBy("user", "name", "james);
+     *     Db.select("*").findBy("user", "name", "james");
      *     Db.select("*").findBy("user", "id > ? and age = ?", 5, 18);
      *
      *  Model 用法可省去参数 table
@@ -262,6 +262,3 @@ public class Dao extends AifeiDao<Dao, Row> {
     //     return config.queryExecutor.countBy(this, table, field, new Object[]{value});
     // }
 }
-
-
-

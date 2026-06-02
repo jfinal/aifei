@@ -267,7 +267,7 @@ public class QueryExecutor {
     // 去除 queryBy 方法，对比直接使用 Db.sql(...).query() 并没有节省代码，反而提高了学习成本与认知负载
     // /**
     //  * queryBy 支持用法:
-    //  *    queryBy("user", "name", "james);
+    //  *    queryBy("user", "name", "james");
     //  *    queryBy("user", "id > ? and age = ?", 5, 18);
     //  *    queryBy("user", "age = ? order by id desc", 18);
     //  *    queryBy("user", "age = 18 order by id desc");
@@ -301,5 +301,3 @@ public class QueryExecutor {
     //     return execute(dao);
     // }
 }
-
-
