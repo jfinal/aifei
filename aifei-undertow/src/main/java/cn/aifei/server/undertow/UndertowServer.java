@@ -193,11 +193,11 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
 
     /**
      * 使用 System.getProperty(...) 加载命令行传入的参数，覆盖配置文件中相关配置，
-     * 支持五个常用参数: host、port、ioThreads、workerThreads、resourcePath
+     * 支持五个常用参数: host、port、resourcePath、ioThreads、workerThreads
      *
      * <pre>
      *  使用示例：
-     *   java -Dport=8080 -Dhost=0.0.0.0 -jar aifei-vip.jar
+     *   java -Dport=8080 -Dhost=localhost -jar aifei-vip.jar
      *
      *  传参注意事项：
      *   1：传参规则由 java 命令行给定，与 aifei-undertow 项目完全无关
@@ -229,7 +229,7 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
         }
     }
 
-    // 使用短变量名: host、port、ioThreads、workerThreads、resourcePath
+    // 使用短变量名: host、port、resourcePath、ioThreads、workerThreads
     // 兼容带 "undertow." 前缀的长变量名，如: undertow.host
     private String getSystemProperty(String shortName, String longName) {
         String ret = System.getProperty(shortName);
