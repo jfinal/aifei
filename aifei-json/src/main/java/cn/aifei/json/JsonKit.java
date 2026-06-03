@@ -84,7 +84,7 @@ public class JsonKit {
 
     /**
      * 设置 json 字符串转换为 Java 对象时，Row 字段由下划线转驼峰之前是否将字段转成小写，
-     * 适用数据表字段大与的数据库，例如 Oracle。
+     * 适用数据表字段大写的数据库，例如 Oracle。
      */
     public JsonKit setWriteRowFieldLowerBeforeCamel(boolean enabled) {
         JsonObject.defaultLowerBeforeCamel = enabled;
