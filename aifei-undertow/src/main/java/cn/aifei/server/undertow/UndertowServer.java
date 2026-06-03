@@ -192,24 +192,25 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
     }
 
     /**
-     * 使用 System.getProperty(...) 加载命令行传入的 undertow.port 与 undertow.host 参数，
-     * 因为这两个参数最有可能在运行项目时进行变动，这个功能可以免去创建 config/undertow-pro.txt
-     * 来配置最需要变动的 port 与 host 参数，进一步节省时间
+     * 使用 System.getProperty(...) 加载命令行传入的参数，覆盖配置文件中相关配置，
+     * 支持五个常用参数: host、port、ioThreads、workerThreads、resourcePath
      *
-     * 使用示例：
-     * java -Dundertow.port=8080 -Dundertow.host=0.0.0.0 -jar aifei-vip.jar
+     * <pre>
+     *  使用示例：
+     *   java -Dport=8080 -Dhost=0.0.0.0 -jar aifei-vip.jar
      *
-     * 传参注意事项：
-     * 1：传参规则由 java 命令行给定，与 aifei-undertow 项目完全无关
-     * 2：传参以 "-D" 为前缀，并且该前缀与后方的参数名之间不能有空格
-     * 3：参数名与参数值中间用等号字符分格，且等号前后不能空格
+     *  传参注意事项：
+     *   1：传参规则由 java 命令行给定，与 aifei-undertow 项目完全无关
+     *   2：传参以 "-D" 为前缀，并且该前缀与后方的参数名之间不能有空格
+     *   3：参数名与参数值中间用等号字符分格，且等号前后不能空格
+     * </pre>
      */
     protected void loadCommandLineParameter() {
-        String port = System.getProperty(PORT);
-        String host = System.getProperty(HOST);
-        String resourcePath = System.getProperty(RESOURCE_PATH);
-        String ioThreads = System.getProperty(IO_THREADS);
-        String workerThreads = System.getProperty(WORKER_THREADS);
+        String port = getSystemProperty("port", PORT);
+        String host = getSystemProperty("host", HOST);
+        String resourcePath = getSystemProperty("resourcePath", RESOURCE_PATH);
+        String ioThreads = getSystemProperty("ioThreads", IO_THREADS);
+        String workerThreads = getSystemProperty("workerThreads", WORKER_THREADS);
 
         if (StrUtil.notBlank(port)) {
             config.port = Integer.parseInt(port.trim());
@@ -226,6 +227,13 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
         if (StrUtil.notBlank(workerThreads)) {
             config.workerThreads = Integer.parseInt(workerThreads.trim());
         }
+    }
+
+    // 使用短变量名: host、port、ioThreads、workerThreads、resourcePath
+    // 兼容带 "undertow." 前缀的长变量名，如: undertow.host
+    private String getSystemProperty(String shortName, String longName) {
+        String ret = System.getProperty(shortName);
+        return StrUtil.notBlank(ret) ? ret : System.getProperty(longName);
     }
 
     protected void configUndertow() {
@@ -321,5 +329,4 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
         }
     }
 }
-
 
