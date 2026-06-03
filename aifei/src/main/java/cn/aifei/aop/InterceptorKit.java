@@ -178,7 +178,7 @@ public class InterceptorKit {
                 result[i] = singletonMap.get(interceptorClasses[i]);
                 if (result[i] == null) {
                     // 此处不能使用 Aop.get(...)，避免生成代理类
-                    result[i] = (Interceptor)interceptorClasses[i].newInstance();
+                    result[i] = interceptorClasses[i].getDeclaredConstructor().newInstance();
                     if (AopKit.get().isInjectDependency()) {
                         Aop.inject(result[i]);
                     }
