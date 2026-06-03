@@ -193,7 +193,7 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
 
     /**
      * 使用 System.getProperty(...) 加载命令行传入的参数，覆盖配置文件中相关配置，
-     * 支持五个常用参数: host、port、resourcePath、ioThreads、workerThreads
+     * 支持五个常用参数: port、host、resourcePath、ioThreads、workerThreads
      *
      * <pre>
      *  使用示例：
@@ -229,8 +229,8 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
         }
     }
 
-    // 使用短变量名: host、port、resourcePath、ioThreads、workerThreads
-    // 兼容带 "undertow." 前缀的长变量名，如: undertow.host
+    // 使用短变量名: port、host、resourcePath、ioThreads、workerThreads
+    // 兼容带 "undertow." 前缀的长变量名，如: undertow.port
     private String getSystemProperty(String shortName, String longName) {
         String ret = System.getProperty(shortName);
         return StrUtil.notBlank(ret) ? ret : System.getProperty(longName);
