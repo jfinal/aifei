@@ -188,7 +188,6 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
         // 由 Builder 构建 Undertow 对象并启动
         undertow = builder.build();
         undertow.start();
-        started = true;
     }
 
     /**
