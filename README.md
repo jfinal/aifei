@@ -128,9 +128,9 @@ public class AppConfig implements AifeiConfig<In, Out> {
 
         dbPlugin.setDialect(new MysqlDialect());    // 配置方言
         dbPlugin.addModelSet(new ModelSet());       // 添加生成的 Model 集合
-        dbPlugin.setPrintSql(true);                 // 配置打印 sql，便于排错与优化
-        dbPlugin.setFormatSql(false);               // 配置 sql 格式化
-        // dbPlugin.setPrintSqlToLog(true);         // 配置 sql 打印到日志文件，便于找到慢 SQL 进行优化
+        dbPlugin.setPrintSql(true);                 // 配置打印 SQL，便于排错与优化
+        dbPlugin.setFormatSql(false);               // 配置 SQL 格式化
+        // dbPlugin.setPrintSqlToLog(true);         // 配置 SQL 打印到日志文件，便于找到慢 SQL 进行优化
         
         plugins.add(dbPlugin);
     }
