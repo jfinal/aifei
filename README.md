@@ -151,7 +151,9 @@ public class AifeiVip {
 
 ### HIO
 
-Aifei 顶层采用 HIO 结构，即 Handler、Input、Output 组成的处理模型。
+Aifei 采用 HIO 自主架构（Handler + Input + Output），让用户自主掌控处理流程、数据结构。
+
+Handler 用于掌控处理流程，Input、Output 用于掌控输入输出数据结构。
 
 该模型将请求处理流程收敛为明确、稳定且可预测的结构，有助于 AI 在生成代码时形成一致模式，减少理解成本与结构歧义。
 
