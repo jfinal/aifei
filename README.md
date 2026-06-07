@@ -2,6 +2,14 @@
 
 世界首个 AI Coding 框架。
 
+官网: https://aifei.cn
+
+文档: https://gitee.com/jfinal/aifei-eco/tree/main/aifei-doc
+
+Demo：https://gitee.com/jfinal/aifei-eco/tree/main/aifei-demo
+
+生态：https://gitee.com/jfinal/aifei-eco
+
 ## 简介
 
 Aifei 是世界首个 AI Coding 框架。
