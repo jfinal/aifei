@@ -25,22 +25,19 @@ import cn.aifei.db.core.Db;
  *
  * <pre>
  *  注意：
- *    如果本拦截器作用的方法处在控制层则会生效，否则需要 ProxyKit 中 ProxyFactory 才会生效，
- *    因为默认配置为 NoProxyFactory，不会创建 aop 代理类。两种配置方法：
+ *    如果本拦截器作用的方法处在控制层则会生效，否则需要配置 ProxyFactory 才会生效，
+ *    因为该配置的默配置为 NoProxyFactory，不会创建 aop 代理类。配置方法：
  *
- *         // 通过配置中心配置
- *         public void config(Settings settings) {
- *             settings.setProxyFactory(new JavassistProxyFactory());
- *         }
- *
- *         // 直接配置
- *         ProxyKit.get().setProxyFactory(new JavassistProxyFactory());
+ *       // 在配置中心的 config(Settings) 中配置
+ *       public void config(Settings settings) {
+ *           settings.setProxyFactory(new JavassistProxyFactory());
+ *       }
  *
  *  示例：
- *    \@Before(Transactional.class)
- *    public Out transfer(Account from, Account to, BigDecimal money) {
- *      ...
- *    }
+ *       \@Before(Transactional.class)
+ *       public Out transfer(Account from, Account to, BigDecimal money) {
+ *         ...
+ *       }
  * </pre>
  */
 public class Transactional implements Interceptor {
