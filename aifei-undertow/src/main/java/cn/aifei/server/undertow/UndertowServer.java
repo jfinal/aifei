@@ -262,6 +262,11 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
             builder.setDirectBuffers(config.getDirectBuffers());
         }
 
+        // 配置 request body 最大值。文件上传受此配置控制
+        builder.setServerOption(UndertowOptions.MAX_ENTITY_SIZE, config.getMaxBodySize());
+        // 配置 multipart request body 最大值。文件上传受此配置控制
+        builder.setServerOption(UndertowOptions.MULTIPART_MAX_ENTITY_SIZE, config.getMaxBodySize());
+
         // 为 UndertowHandler 配置 ResourceManager 处理静态资源
         ResourceManagerBuilder builder = new ResourceManagerBuilder(config.getResourcePath(), config.getClassLoader());
         ResourceManager resourceManager = builder.build();
