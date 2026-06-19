@@ -471,10 +471,10 @@ public class UndertowConfig {
     }
 
     public void setBufferSize(int bufferSize) {
-        if (p.get(BUFFER_SIZE) == null) {
+        if (p.getInt(BUFFER_SIZE) == null) {
             this.bufferSize = bufferSize;
         } else {
-            System.out.println("undertow-server: 优先使用配置文件中的 " + BUFFER_SIZE + " = " + p.get(BUFFER_SIZE));
+            System.out.println("undertow-server: 优先使用配置文件中的 " + BUFFER_SIZE + " = " + p.getInt(BUFFER_SIZE));
         }
     }
 
@@ -483,10 +483,10 @@ public class UndertowConfig {
     }
 
     public void setDirectBuffers(boolean directBuffers) {
-        if (p.get(DIRECT_BUFFERS) == null) {
+        if (p.getBoolean(DIRECT_BUFFERS) == null) {
             this.directBuffers = directBuffers;
         } else {
-            System.out.println("undertow-server: 优先使用配置文件中的 " + DIRECT_BUFFERS + " = " + p.get(DIRECT_BUFFERS));
+            System.out.println("undertow-server: 优先使用配置文件中的 " + DIRECT_BUFFERS + " = " + p.getBoolean(DIRECT_BUFFERS));
         }
     }
 
@@ -507,10 +507,10 @@ public class UndertowConfig {
     }
 
     public void setMaxBodySize(long maxBodySize) {
-        if (p.get(MAX_BODY_SIZE) == null) {
+        if (p.getLong(MAX_BODY_SIZE) == null) {
             this.maxBodySize = maxBodySize;
         } else {
-            System.out.println("undertow-server: 优先使用配置文件中的 " + MAX_BODY_SIZE + " = " + p.get(MAX_BODY_SIZE));
+            System.out.println("undertow-server: 优先使用配置文件中的 " + MAX_BODY_SIZE + " = " + p.getLong(MAX_BODY_SIZE));
         }
     }
 
