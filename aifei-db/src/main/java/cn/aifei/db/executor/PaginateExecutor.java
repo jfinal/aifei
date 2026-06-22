@@ -145,9 +145,9 @@ public class PaginateExecutor {
             preparedStatement = connection.prepareStatement(sqlPara.getSql());
             dialect.fillStatement(preparedStatement, sqlPara.getPara());
 
-            int queryMaxRows = config.getQueryMaxRows();
-            if (queryMaxRows > 0) {
-                preparedStatement.setMaxRows(queryMaxRows);
+            int maxResultRows = config.getMaxResultRows();
+            if (maxResultRows > 0) {
+                preparedStatement.setMaxRows(maxResultRows);
             }
 
             resultSet = preparedStatement.executeQuery();

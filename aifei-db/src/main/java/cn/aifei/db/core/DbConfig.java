@@ -78,7 +78,7 @@ public class DbConfig {
     BatchUpdateExecutor batchUpdateExecutor = new BatchUpdateExecutor();
     TransactionExecutor transactionExecutor = new TransactionExecutor();
 
-    int queryMaxRows = 0;
+    int maxResultRows = 0;
 
     public DbConfig(String id, DataSource dataSource) {
         this(id, dataSource, new MysqlDialect());
@@ -438,12 +438,12 @@ public class DbConfig {
         return this;
     }
 
-    public int getQueryMaxRows() {
-        return queryMaxRows;
+    public int getMaxResultRows() {
+        return maxResultRows;
     }
 
     /**
-     * 配置 find、query、paginate 三个系列方法最大返回行数。
+     * 配置 find、query、paginate 三个系列方法最大结果行数。
      *
      * <pre>
      * 目的：
@@ -451,11 +451,11 @@ public class DbConfig {
      * 2: 提高应用并发以及稳定性。
      * </pre>
      */
-    public void setQueryMaxRows(int queryMaxRows) {
-        if (queryMaxRows < 0) {
-            throw new IllegalArgumentException("queryMaxRows cannot be negative.");
+    public void setMaxResultRows(int maxResultRows) {
+        if (maxResultRows < 0) {
+            throw new IllegalArgumentException("maxResultRows cannot be negative.");
         }
-        this.queryMaxRows = queryMaxRows;
+        this.maxResultRows = maxResultRows;
     }
 }
 
