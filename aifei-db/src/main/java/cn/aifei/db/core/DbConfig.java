@@ -443,7 +443,7 @@ public class DbConfig {
     }
 
     /**
-     * 配置 find、query、paginate 三个系列方法最大结果行数。
+     * 配置 find、query 两个系列方法最大结果行数。
      *
      * <pre>
      * 目的：
