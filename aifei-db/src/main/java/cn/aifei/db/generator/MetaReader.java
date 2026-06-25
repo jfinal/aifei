@@ -342,7 +342,7 @@ public class MetaReader {
 
     /**
      * handleJavaType(...) 方法是用于处理 java 类型的回调方法，当 aifei-db 默认
-     * 处理规则无法满足需求时，用户可以通过继承 MetaBuilder 并覆盖此方法定制自己的
+     * 处理规则无法满足需求时，用户可以通过继承 MetaReader 并覆盖此方法定制自己的
      * 类型转换规则
      *
      * 当前实现只处理了 Oracle 数据库的 NUMBER 类型，根据精度与小数位数转换成 Integer、
