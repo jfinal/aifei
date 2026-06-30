@@ -269,7 +269,7 @@ public class AifeiRow<R extends AifeiRow<R>> implements Iterable<Map.Entry<Strin
         }
     }
 
-    // 仅提供 CPI.setOrPut(Map) 用法，避免被 json 框架识别为 setter 方法
+    // 仅提供 Cpc.setOrPut(AifeiRow self, Map data) 用法，避免被 json 框架识别为 setter 方法
     R setOrPut(Map<String, Object> data) {
         if (data != null) {
             for (Map.Entry<String, Object> e : data.entrySet()) {
@@ -279,7 +279,7 @@ public class AifeiRow<R extends AifeiRow<R>> implements Iterable<Map.Entry<Strin
         return (R) this;
     }
 
-    // 仅提供 CPI.setOrPut(AifeiRow) 用法，避免被 json 框架识别为 setter 方法
+    // 仅提供 Cpc.setOrPut(AifeiRow self, AifeiRow dataRow) 用法，避免被 json 框架识别为 setter 方法
     R setOrPut(AifeiRow<?> row) {
         return row != null ? setOrPut(row.data) : (R) this;
     }
