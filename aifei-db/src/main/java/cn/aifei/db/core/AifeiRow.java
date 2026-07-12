@@ -614,7 +614,6 @@ public class AifeiRow<R extends AifeiRow<R>> implements Iterable<Map.Entry<Strin
 
     /**
      * 获取 byte[] 型字段值。支持的 mysql 字段类型: binary, varbinary, tinyblob, blob, mediumblob, longblob
-     * I have not finished the test.
      */
     public byte[] getBytes(String field) {
         return get(field);
