@@ -18,10 +18,12 @@ package cn.aifei.db.factory;
 
 import cn.aifei.db.core.*;
 import cn.aifei.enjoy.util.InstanceUtil;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -29,22 +31,11 @@ import java.util.function.Function;
 /**
  * 从 ResultSet 在获取数据并放入 Row 或者 Row 的子类
  *
- * <p>
- * 如需针对 mybatis 用户使用习惯，避免 JDBC 将 Byte、Short 转成 Integer，
- * 可将继承 RowFactory 并将 if (types[i] < Types.DATE) 代码块改为如下内容：
- *     if (types[i] < Types.DATE) {
- *         if (types[i] == Types.TINYINT) {
- *             value = BuilderKit.getByte(rs, i);
- *         } else if (types[i] == Types.SMALLINT) {
- *             value = BuilderKit.getShort(rs, i);
- *         } else {
- *             value = rs.getObject(i);
- *         }
- *     }
+ * <pre>
+ * 默认通过 ResultSet.getObject(...) 保留 JDBC 驱动返回的类型，仅对驱动实际返回的 LOB 对象做物化处理。
  *
- * <p>
- * 注：可优先尝试 rs.getByte(i) 与 ResultSet.getShort(i) 是否满足需求，
- *      否则使用 jfinal 源码中的 BuilderKit.java 实现 Byte、Short 值获取
+ * 如需定制字段读取规则，可继承 RowFactory 并覆盖 readValue(...)。
+ * </pre>
  */
 public class RowFactory implements Serializable {
 
@@ -62,26 +53,7 @@ public class RowFactory implements Serializable {
         while (rs.next()) {
             Map<String, Object> data = dataMapFactory.get();
             for (int i = 1; i <= columnCount; i++) {
-                Object value;
-                if (types[i] < Types.DATE) {
-                    value = rs.getObject(i);
-                } else {
-                    if (types[i] == Types.TIMESTAMP) {
-                        value = rs.getTimestamp(i);
-                    } else if (types[i] == Types.DATE) {
-                        value = rs.getDate(i);
-                    } else if (types[i] == Types.CLOB) {
-                        value = handleClob(rs.getClob(i));
-                    } else if (types[i] == Types.NCLOB) {
-                        value = handleClob(rs.getNClob(i));
-                    } else if (types[i] == Types.BLOB) {
-                        value = handleBlob(rs.getBlob(i));
-                    } else {
-                        value = rs.getObject(i);
-                    }
-                }
-
-                data.put(labelNames[i], value);
+                data.put(labelNames[i], readValue(rs, i, types[i]));
             }
 
             AifeiRow<?> row = newRow(dao.rowType()).data(data);
@@ -95,6 +67,48 @@ public class RowFactory implements Serializable {
         }
 
         return result;
+    }
+
+    /**
+     * 必须以 ResultSet.getObject(int) 作为默认读取方式。
+     *
+     * <pre>
+     * JDBC 规范明确定义：
+     * ResultSetMetaData.getColumnClassName(int) 返回调用 ResultSet.getObject(int)
+     * 读取该列时所创建对象的类名，实际对象允许是该类的子类。
+     *
+     * MetaReader 优先使用这个类名生成字段类型，因此这里不能随意改用
+     * getDate、getTimestamp 或 getObject(int, Class)，否则生成阶段看到的类型
+     * 与运行阶段的实际值可能不一致。
+     *
+     * 特别注意：getObject(int, Class) 表示请求驱动转换为指定类型，
+     * 它不是 getColumnClassName(int) 所对应的默认取值方式。
+     *
+     * 默认 TypeMapping 会将 Blob 映射成 byte[]、将 Clob/NClob 映射成 String，
+     * 所以只在 getObject 实际返回 LOB 对象时进行物化；如果驱动已经返回
+     * byte[] 或 String，则必须保留原值。
+     * </pre>
+     *
+     * @see ResultSetMetaData#getColumnClassName(int)
+     * @see ResultSet#getObject(int)
+     */
+    protected Object readValue(ResultSet rs, int column, int jdbcType) throws SQLException {
+        // String、Integer、Long、byte[] 等高频类型走 getObject 快速路径。
+        // JDBC Types 常量的数值不是类型分类；这个判断只是性能优化，其余类型仍以 getObject 兜底。
+        if (jdbcType < Types.DATE) {
+            return rs.getObject(column);
+        }
+
+        Object value = rs.getObject(column);
+        switch (jdbcType) {
+            case Types.BLOB:
+                return value instanceof Blob ? handleBlob((Blob) value) : value;
+            case Types.CLOB:
+            case Types.NCLOB:
+                return value instanceof Clob ? handleClob((Clob) value) : value;
+            default:
+                return value;
+        }
     }
 
     protected AifeiRow<?> newRow(Class<? extends AifeiRow<?>> rowType) {
@@ -115,25 +129,41 @@ public class RowFactory implements Serializable {
             return null;
         }
 
+        long length = blob.length();
+        if (length == 0) {
+            return new byte[0];
+        }
+        if (length > Integer.MAX_VALUE) {
+            throw new SQLException("Blob is too large to convert to byte[].");
+        }
+
         try (InputStream is = blob.getBinaryStream()) {
             if (is == null) {
                 return null;
             }
-            byte[] data = new byte[(int) blob.length()];     // byte[] data = new byte[is.available()];
-            if (data.length == 0) {
-                return null;
+            byte[] data = new byte[(int) length];     // byte[] data = new byte[is.available()];
+            int offset = 0;
+            while (offset < data.length) {
+                int read = is.read(data, offset, data.length - offset);
+                if (read <= 0) {
+                    break;
+                }
+                offset += read;
             }
-            is.read(data);
-            return data;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            return offset == data.length ? data : Arrays.copyOf(data, offset);
+        } catch (IOException e) {
+            throw new SQLException("Failed to read Blob data.", e);
         }
     }
 
     protected String handleClob(Clob clob) throws SQLException {
-        return clob == null ? null : clob.getSubString(1, (int) clob.length());
+        if (clob == null) {
+            return null;
+        }
+        long length = clob.length();
+        if (length > Integer.MAX_VALUE) {
+            throw new SQLException("Clob is too large to convert to String.");
+        }
+        return clob.getSubString(1, (int) length);
     }
 }
-
-
-
