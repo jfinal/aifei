@@ -16,20 +16,25 @@
 
 package cn.aifei.db.generator;
 
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * TypeMapping 建立起 ResultSetMetaData.getColumnClassName(i)到 java 类型的映射关系，
- * 特别注意时间型类型映射为了 java.util.Date（java.sql.Time 除外），可通过 addMapping
- * 方法覆盖原有映射定制个性化映射关系
+ * TypeMapping 用于配置数据库字段到生成代码 Java 类型的映射关系。
+ *
  * <p>
- * 与 com.jfinal.plugin.activerecord.JavaType.java 类型映射不同之处在于
- * 将时间型类型对应到 java.util.Date（java.sql.Time 除外）
+ * MetaReader 优先使用 ResultSetMetaData.getColumnClassName(i) 返回的类名进行映射；
+ * 未找到时，再使用 ResultSetMetaData.getColumnType(i) 返回的 JDBC 类型进行兜底映射；
+ * 两次均未找到时默认使用 java.lang.String。
+ *
+ * <p>
+ * 默认将日期、时间戳类型映射为 java.util.Date，TIME 类型映射为 java.sql.Time。
+ * 可通过 addMapping(...) 和 removeMapping(...) 调整默认映射规则。
  */
 public class TypeMapping {
 
-	protected Map<String, String> map = new HashMap<String, String>(32) {{
+	protected Map<String, String> classNameToJavaType = new HashMap<String, String>(32) {{
 		// java.util.Date can not be returned
 		// java.sql.Date, java.sql.Time, java.sql.Timestamp all extends java.util.Date so getDate can return the three types data
 		put("java.util.Date", "java.util.Date");
@@ -100,23 +105,68 @@ public class TypeMapping {
 	}};
 
 	public void addMapping(Class<?> from, Class<?> to) {
-		map.put(from.getName(), to.getName());
+		classNameToJavaType.put(from.getName(), to.getName());
 	}
 
 	public void addMapping(String from, String to) {
-		map.put(from, to);
+		classNameToJavaType.put(from, to);
 	}
 
 	public void removeMapping(Class<?> from) {
-		map.remove(from.getName());
+		classNameToJavaType.remove(from.getName());
 	}
 
 	public void removeMapping(String from) {
-		map.remove(from);
+		classNameToJavaType.remove(from);
 	}
 
-	public String getType(String typeString) {
-		return map.get(typeString);
+	public String getType(String className) {
+		return classNameToJavaType.get(className);
+	}
+
+	// ---------------------------------------------------------------------------------------
+
+	protected Map<Integer, String> jdbcTypeToJavaType = new HashMap<Integer, String>(32) {{
+		put(Types.TINYINT, Integer.class.getName());
+		put(Types.SMALLINT, Integer.class.getName());
+		put(Types.INTEGER, Integer.class.getName());
+
+		put(Types.BIGINT, Long.class.getName());
+
+		put(Types.NUMERIC, java.math.BigDecimal.class.getName());
+		put(Types.DECIMAL, java.math.BigDecimal.class.getName());
+
+		put(Types.REAL, Float.class.getName());
+		put(Types.FLOAT, Double.class.getName());
+		put(Types.DOUBLE, Double.class.getName());
+
+		put(Types.BIT, Boolean.class.getName());
+		put(Types.BOOLEAN, Boolean.class.getName());
+
+		put(Types.DATE, java.util.Date.class.getName());
+		put(Types.TIMESTAMP, java.util.Date.class.getName());
+		put(Types.TIME, java.sql.Time.class.getName());
+
+		put(Types.BINARY, "byte[]");
+		put(Types.VARBINARY, "byte[]");
+		put(Types.LONGVARBINARY, "byte[]");
+		put(Types.BLOB, "byte[]");
+
+		put(Types.CLOB, String.class.getName());
+		put(Types.NCLOB, String.class.getName());
+
+		put(Types.OTHER, Object.class.getName());
+	}};
+
+	public void addMapping(int from, String to) {
+		jdbcTypeToJavaType.put(from, to);
+	}
+
+	public void removeMapping(int from) {
+		jdbcTypeToJavaType.remove(from);
+	}
+
+	public String getType(int jdbcType) {
+		return jdbcTypeToJavaType.get(jdbcType);
 	}
 }
-

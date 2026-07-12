@@ -293,23 +293,13 @@ public class MetaReader {
                     String javaType = typeMapping.getType(fieldClassName);
                     if (javaType == null) {
                         int type = rsmd.getColumnType(i);
-                        if (type == Types.BINARY || type == Types.VARBINARY || type == Types.LONGVARBINARY || type == Types.BLOB) {
-                            javaType = "byte[]";
-                        } else if (type == Types.CLOB || type == Types.NCLOB) {
-                            javaType = "java.lang.String";
-                        }
-                        // 支持 oracle 的 TIMESTAMP、DATE 字段类型，其中 Types.DATE 值并不会出现
-                        // 保留对 Types.DATE 的判断，一是为了逻辑上的正确性、完备性，二是其它类型的数据库可能用得着
-                        else if (type == Types.TIMESTAMP || type == Types.DATE) {
-                            javaType = "java.util.Date";
-                        }
-                        // 支持 PostgreSql 的 jsonb json
-                        else if (type == Types.OTHER) {
-                            javaType = "java.lang.Object";
-                        } else {
+                        javaType = typeMapping.getType(type);   // 通过 int 型 type 再取一次
+
+                        if (javaType == null) {
                             javaType = "java.lang.String";
                         }
                     }
+
                     javaType = handleJavaType(dialect, javaType, rsmd, i);
 
                     // 获取 attrName
