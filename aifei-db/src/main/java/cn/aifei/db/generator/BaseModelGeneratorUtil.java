@@ -35,7 +35,6 @@ public class BaseModelGeneratorUtil {
      * 针对 Model 中七种可以自动转换类型的 getter 方法，调用其具有确定类型返回值的 getter 方法
      * 享用自动类型转换的便利性，例如 getInt(String)、getStr(String)
      * 其它方法使用泛型返回值方法： get(String)
-     * 注意：jfinal 3.2 及以上版本 Model 中的六种 getter 方法才具有类型转换功能
      */
     private final Map<String, String> getterTypeMap = new HashMap<String, String>() {{
         put("String", "getStr");
