@@ -288,7 +288,8 @@ public class MetaReader {
                     // 获取 fieldName
                     String fieldName = rsmd.getColumnName(i).trim();   // getColumnName 返回字段真名而并非 as 指定的别名
 
-                    // 获取 javaType
+                    // getColumnClassName() 表示 getObject() 实际返回的 Java 类型，比通用 JDBC 类型更精确，故优先使用
+                    // 类名未命中映射时，再使用 getColumnType() 返回的 JDBC 类型兜底
                     String fieldClassName = rsmd.getColumnClassName(i);
                     String javaType = typeMapping.getType(fieldClassName);
                     if (javaType == null) {
