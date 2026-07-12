@@ -25,6 +25,16 @@ import java.util.stream.Collectors;
 
 /**
  * PropKit. 用于从 CLASSPATH 或指定文件加载 properties 配置文件.
+ *
+ * <pre>
+ * 备注：
+ * 1: 不要提供 useWithoutProfile 方法，否则下面用法会产生问题
+ *      PropKit.use("other.txt");                   // 缓存了带 profile 的版本
+ *      PropKit.useWithoutProfile("other.txt");     // 仍返回带 profile 的缓存
+ *
+ * 2: 有 useWithoutProfile 需求的地方可以使用如下用法
+ *      Prop other = new Prop("other.txt");
+ * </pre>
  */
 public class PropKit {
 
