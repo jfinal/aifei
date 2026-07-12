@@ -119,7 +119,8 @@ public class TypeMapping {
 	}};
 
 	public void addMapping(Class<?> from, Class<?> to) {
-		classNameToJavaType.put(from.getName(), to.getName());
+		// byte[].class.getName() 会得到 "[B"，不能直接用于生成 Java 源代码
+		classNameToJavaType.put(from.getName(), to == byte[].class ? "byte[]" : to.getName());
 	}
 
 	public void addMapping(String from, String to) {
