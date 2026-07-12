@@ -297,7 +297,7 @@ public class MetaReader {
                         javaType = typeMapping.getType(type);   // 通过 int 型 type 再取一次
 
                         if (javaType == null) {
-                            javaType = "java.lang.String";
+                            javaType = Object.class.getName();
                         }
                     }
 
