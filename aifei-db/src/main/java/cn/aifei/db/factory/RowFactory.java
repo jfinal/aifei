@@ -83,6 +83,8 @@ public class RowFactory implements Serializable {
      *
      * 特别注意：getObject(int, Class) 表示请求驱动转换为指定类型，
      * 它不是 getColumnClassName(int) 所对应的默认取值方式。
+     * TypeMapping 对时区类型也只按 getColumnClassName(int) 报告的 Offset 类名精确映射，
+     * 不能仅根据 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 就在此强制转换。
      *
      * 默认 TypeMapping 会将 Blob 映射成 byte[]、将 Clob/NClob 映射成 String，
      * 所以只在 getObject 实际返回 LOB 对象时进行物化；如果驱动已经返回

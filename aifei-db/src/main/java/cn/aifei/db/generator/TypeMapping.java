@@ -29,6 +29,12 @@ import java.util.Map;
  * 两次均未找到时默认使用 java.lang.Object。
  *
  * <p>
+ * 时区类型只按 getColumnClassName(i) 返回的 OffsetDateTime/OffsetTime 类名映射，
+ * 不按 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 做 JDBC 类型兜底。部分驱动虽然
+ * 报告这两个 JDBC 类型，getObject(i) 却返回厂商专用对象；如果兜底生成 Offset 字段，
+ * 则生成的 getter 会在运行时发生 ClassCastException。
+ *
+ * <p>
  * 默认将日期、时间戳类型映射为 java.util.Date，TIME 类型映射为 java.sql.Time。
  * 可通过 addMapping(...) 和 removeMapping(...) 调整默认映射规则。
  */
@@ -90,7 +96,7 @@ public class TypeMapping {
 		// byte
 		put("java.lang.Byte", "java.lang.Byte");
 
-		// 新增 java 8 的三种时间类型
+		// java 8 日期时间类型
 		// put("java.time.LocalDateTime", "java.time.LocalDateTime");
 		// put("java.time.LocalDate", "java.time.LocalDate");
 		// put("java.time.LocalTime", "java.time.LocalTime");
@@ -106,6 +112,11 @@ public class TypeMapping {
 		put("java.time.LocalDateTime", "java.util.Date");
 		put("java.time.LocalDate", "java.util.Date");
 		put("java.time.LocalTime", "java.sql.Time");
+
+		/*
+		 * getColumnClassName() 与无类型参数的 getObject() 是 JDBC 规范中的配套契约。
+		 * 只有驱动明确报告 Offset 类名时，才能保证 RowFactory 取到同类型的值。
+		 */
 		put("java.time.OffsetDateTime", "java.time.OffsetDateTime");
 		put("java.time.OffsetTime", "java.time.OffsetTime");
 
@@ -166,8 +177,13 @@ public class TypeMapping {
 		put(Types.DATE, java.util.Date.class.getName());
 		put(Types.TIMESTAMP, java.util.Date.class.getName());
 		put(Types.TIME, java.sql.Time.class.getName());
-		put(Types.TIMESTAMP_WITH_TIMEZONE, java.time.OffsetDateTime.class.getName());
-		put(Types.TIME_WITH_TIMEZONE, java.time.OffsetTime.class.getName());
+
+		/*
+		 * 不要在此将 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 兜底映射成 Offset 类型。
+		 * 例如 H2 1.4 默认对 TIMESTAMP_WITH_TIMEZONE 返回
+		 * org.h2.api.TimestampWithTimeZone，而 RowFactory 必须保留 getObject() 的返回类型。
+		 * 类名未命中时退回 Object，比生成一个无法安全强转的 Offset getter 更可靠。
+		 */
 
 		put(Types.BINARY, "byte[]");
 		put(Types.VARBINARY, "byte[]");

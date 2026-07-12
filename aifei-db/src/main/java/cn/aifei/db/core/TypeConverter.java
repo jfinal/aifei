@@ -214,10 +214,11 @@ public class TypeConverter implements Serializable {
                 return TimeUtil.toDate((LocalTime) d);
             }
             if (d instanceof OffsetDateTime) {
-                return TimeUtil.toDate(((OffsetDateTime) d).toLocalDateTime());
+                // OffsetDateTime 表示确定的时间点，不能先调用 toLocalDateTime() 丢弃 offset。
+                return java.util.Date.from(((OffsetDateTime) d).toInstant());
             }
             if (d instanceof ZonedDateTime) {
-                return TimeUtil.toDate(((ZonedDateTime) d).toLocalDateTime());
+                return java.util.Date.from(((ZonedDateTime) d).toInstant());
             }
         }
 
@@ -315,5 +316,4 @@ public class TypeConverter implements Serializable {
         throw new IllegalArgumentException("Cannot convert type " + ts.getClass().getName() + " to Timestamp.");
     }
 }
-
 
