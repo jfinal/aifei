@@ -56,8 +56,7 @@ public class PropKit {
      */
     public static List<String> getActiveProfiles(Prop prop) {
         // 优先从系统变量中获取，支持命令行传参 --aifei.profiles.active=pro
-        // PropKit.prop 判断 null 值：仅第一次调用从系统变量中获取 activeProfiles，否则从 prop 中获取
-        String value = (PropKit.prop == null ? System.getProperty(activeProfilesKey) : null);
+        String value = System.getProperty(activeProfilesKey);
         if (StrUtil.isBlank(value)) {
             value = prop.get(activeProfilesKey);
             if (StrUtil.notBlank(value)) {
