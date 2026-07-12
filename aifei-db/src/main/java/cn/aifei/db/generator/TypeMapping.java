@@ -34,7 +34,7 @@ import java.util.Map;
  */
 public class TypeMapping {
 
-	protected Map<String, String> classNameToJavaType = new HashMap<String, String>(32) {{
+	protected Map<String, String> classNameToJavaType = new HashMap<String, String>(64) {{
 		// java.util.Date can not be returned
 		// java.sql.Date, java.sql.Time, java.sql.Timestamp all extends java.util.Date so getDate can return the three types data
 		put("java.util.Date", "java.util.Date");
@@ -53,6 +53,10 @@ public class TypeMapping {
 		// binary, varbinary, tinyblob, blob, mediumblob, longblob
 		// qjd project: print_info.content varbinary(61800);
 		put("[B", "byte[]");
+		put("java.sql.Blob", "byte[]");
+
+		put("java.sql.Clob", "java.lang.String");
+		put("java.sql.NClob", "java.lang.String");
 
 		// ---------
 
@@ -95,13 +99,23 @@ public class TypeMapping {
 		 * 部分同学反馈使用原始的 Date 更常用，故默认使用原始 Date
 		 * 需要调整的通过可通过在 Generator.configMetaReader 方法内调用 addTypeMapping(...) 来覆盖默认映射
 		 *
-		 * 也可以通过 removeMapping(...) 来清除默认映射，让 JDBC 自动处理映射关系
+		 * 也可以通过 removeMapping(...) 清除类名映射，改用 JDBC 类型兜底映射
 		 *
 		 * 注意：mysql 8 版本会将 datetime 字段类型映射为 LocalDateTime
 		 */
 		put("java.time.LocalDateTime", "java.util.Date");
 		put("java.time.LocalDate", "java.util.Date");
 		put("java.time.LocalTime", "java.sql.Time");
+		put("java.time.OffsetDateTime", "java.time.OffsetDateTime");
+		put("java.time.OffsetTime", "java.time.OffsetTime");
+
+		put("java.sql.Array", "java.sql.Array");
+		put("java.sql.Struct", "java.sql.Struct");
+		put("java.sql.Ref", "java.sql.Ref");
+		put("java.sql.RowId", "java.sql.RowId");
+		put("java.sql.SQLXML", "java.sql.SQLXML");
+		put("java.sql.ResultSet", "java.sql.ResultSet");
+		put("java.net.URL", "java.net.URL");
 	}};
 
 	public void addMapping(Class<?> from, Class<?> to) {
