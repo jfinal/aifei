@@ -126,7 +126,7 @@ public class TypeMapping {
 
 	// ---------------------------------------------------------------------------------------
 
-	protected Map<Integer, String> jdbcTypeToJavaType = new HashMap<Integer, String>(32) {{
+	protected Map<Integer, String> jdbcTypeToJavaType = new HashMap<Integer, String>(64) {{
 		put(Types.TINYINT, Integer.class.getName());
 		put(Types.SMALLINT, Integer.class.getName());
 		put(Types.INTEGER, Integer.class.getName());
@@ -146,15 +146,35 @@ public class TypeMapping {
 		put(Types.DATE, java.util.Date.class.getName());
 		put(Types.TIMESTAMP, java.util.Date.class.getName());
 		put(Types.TIME, java.sql.Time.class.getName());
+		put(Types.TIMESTAMP_WITH_TIMEZONE, java.time.OffsetDateTime.class.getName());
+		put(Types.TIME_WITH_TIMEZONE, java.time.OffsetTime.class.getName());
 
 		put(Types.BINARY, "byte[]");
 		put(Types.VARBINARY, "byte[]");
 		put(Types.LONGVARBINARY, "byte[]");
 		put(Types.BLOB, "byte[]");
 
+		put(Types.CHAR, String.class.getName());
+		put(Types.VARCHAR, String.class.getName());
+		put(Types.LONGVARCHAR, String.class.getName());
+		put(Types.NCHAR, String.class.getName());
+		put(Types.NVARCHAR, String.class.getName());
+		put(Types.LONGNVARCHAR, String.class.getName());
 		put(Types.CLOB, String.class.getName());
 		put(Types.NCLOB, String.class.getName());
 
+		put(Types.ARRAY, java.sql.Array.class.getName());
+		put(Types.STRUCT, java.sql.Struct.class.getName());
+		put(Types.REF, java.sql.Ref.class.getName());
+		put(Types.ROWID, java.sql.RowId.class.getName());
+		put(Types.SQLXML, java.sql.SQLXML.class.getName());
+		put(Types.REF_CURSOR, java.sql.ResultSet.class.getName());
+
+		put(Types.DATALINK, java.net.URL.class.getName());
+
+		put(Types.NULL, Object.class.getName());
+		put(Types.JAVA_OBJECT, Object.class.getName());
+		put(Types.DISTINCT, Object.class.getName());
 		put(Types.OTHER, Object.class.getName());
 	}};
 
