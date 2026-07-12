@@ -115,6 +115,8 @@ public class TypeMapping {
 		put("java.sql.RowId", "java.sql.RowId");
 		put("java.sql.SQLXML", "java.sql.SQLXML");
 		put("java.sql.ResultSet", "java.sql.ResultSet");
+
+		put("java.util.UUID", "java.util.UUID");
 		put("java.net.URL", "java.net.URL");
 	}};
 
