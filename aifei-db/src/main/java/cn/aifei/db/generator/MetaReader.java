@@ -268,7 +268,7 @@ public class MetaReader {
      *
      * JDBC 与时间有关类型转换规则，mysql 类型到 java 类型如下对应关系：
      * DATE				java.sql.Date
-     * DATETIME			java.sql.Timestamp
+     * DATETIME			java.time.LocalDateTime
      * TIMESTAMP[(M)]	java.sql.Timestamp
      * TIME				java.sql.Time
      *

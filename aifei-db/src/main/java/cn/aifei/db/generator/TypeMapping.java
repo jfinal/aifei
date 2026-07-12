@@ -26,7 +26,7 @@ import java.util.Map;
  * <p>
  * MetaReader 优先使用 ResultSetMetaData.getColumnClassName(i) 返回的类名进行映射；
  * 未找到时，再使用 ResultSetMetaData.getColumnType(i) 返回的 JDBC 类型进行兜底映射；
- * 两次均未找到时默认使用 java.lang.String。
+ * 两次均未找到时默认使用 java.lang.Object。
  *
  * <p>
  * 默认将日期、时间戳类型映射为 java.util.Date，TIME 类型映射为 java.sql.Time。
@@ -121,8 +121,11 @@ public class TypeMapping {
 	}};
 
 	public void addMapping(Class<?> from, Class<?> to) {
-		// byte[].class.getName() 会得到 "[B"，不能直接用于生成 Java 源代码
-		classNameToJavaType.put(from.getName(), to == byte[].class ? "byte[]" : to.getName());
+		String javaType = to.getCanonicalName();
+		if (javaType == null) {
+			throw new IllegalArgumentException("The target type must have a canonical name: " + to.getName());
+		}
+		classNameToJavaType.put(from.getName(), javaType);
 	}
 
 	public void addMapping(String from, String to) {
