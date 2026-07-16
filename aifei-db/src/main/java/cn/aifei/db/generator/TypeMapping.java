@@ -90,11 +90,12 @@ public class TypeMapping {
 		// unsigned bigint
 		put("java.math.BigInteger", "java.math.BigInteger");
 
-		// short
-		put("java.lang.Short", "java.lang.Short");
+		// Short is normalized to Integer to keep generated models stable across
+		// JDBC drivers and driver versions
+		put("java.lang.Short", "java.lang.Integer");
 
-		// byte
-		put("java.lang.Byte", "java.lang.Byte");
+		// Byte is normalized to Integer for the same reason as Short
+		put("java.lang.Byte", "java.lang.Integer");
 
 		// java 8 日期时间类型
 		// put("java.time.LocalDateTime", "java.time.LocalDateTime");

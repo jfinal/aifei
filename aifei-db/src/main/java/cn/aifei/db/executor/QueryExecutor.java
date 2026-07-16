@@ -176,11 +176,6 @@ public class QueryExecutor {
         return dao.config().getTypeConverter().toFloat(value);
     }
 
-    public Short queryShort(AifeiDao<?, ?> dao) {
-        Object value = queryField(dao);
-        return dao.config().getTypeConverter().toShort(value);
-    }
-
     public Number queryNumber(AifeiDao<?, ?> dao) {
         Object value = queryField(dao);
         return dao.config().getTypeConverter().toNumber(value);
@@ -189,11 +184,6 @@ public class QueryExecutor {
     public Boolean queryBoolean(AifeiDao<?, ?> dao) {
         Object value = queryField(dao);
         return dao.config().getTypeConverter().toBoolean(value);
-    }
-
-    public Byte queryByte(AifeiDao<?, ?> dao) {
-        Object value = queryField(dao);
-        return dao.config().getTypeConverter().toByte(value);
     }
 
     public byte[] queryBytes(AifeiDao<?, ?> dao) {

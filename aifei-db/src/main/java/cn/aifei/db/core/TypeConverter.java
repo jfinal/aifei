@@ -125,29 +125,29 @@ public class TypeConverter implements Serializable {
         }
     }
 
-    public Short toShort(Object n) {
-        if (n instanceof Short) {
-            return (Short) n;
-        } else if (n == null) {
-            return null;
-        } else if (n instanceof Number) {
-            return ((Number) n).shortValue();
-        } else {
-            return Short.valueOf(n.toString()); // 支持 String 类型转换
-        }
-    }
+    // public Short toShort(Object n) {
+    //     if (n instanceof Short) {
+    //         return (Short) n;
+    //     } else if (n == null) {
+    //         return null;
+    //     } else if (n instanceof Number) {
+    //         return ((Number) n).shortValue();
+    //     } else {
+    //         return Short.valueOf(n.toString()); // 支持 String 类型转换
+    //     }
+    // }
 
-    public Byte toByte(Object n) {
-        if (n instanceof Byte) {
-            return (Byte) n;
-        } else if (n == null) {
-            return null;
-        } else if (n instanceof Number) {
-            return ((Number) n).byteValue();
-        } else {
-            return Byte.valueOf(n.toString());  // 支持 String 类型转换
-        }
-    }
+    // public Byte toByte(Object n) {
+    //     if (n instanceof Byte) {
+    //         return (Byte) n;
+    //     } else if (n == null) {
+    //         return null;
+    //     } else if (n instanceof Number) {
+    //         return ((Number) n).byteValue();
+    //     } else {
+    //         return Byte.valueOf(n.toString());  // 支持 String 类型转换
+    //     }
+    // }
 
     public Boolean toBoolean(Object b) {
         if (b instanceof Boolean) {
@@ -316,4 +316,3 @@ public class TypeConverter implements Serializable {
         throw new IllegalArgumentException("Cannot convert type " + ts.getClass().getName() + " to Timestamp.");
     }
 }
-

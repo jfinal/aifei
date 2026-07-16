@@ -26,6 +26,18 @@ public class TypeConverterTest {
     private final TypeConverter converter = new TypeConverter();
 
     @Test
+    public void shortToIntIsLossless() {
+        assertEquals(Integer.valueOf(Short.MIN_VALUE), converter.toInt(Short.valueOf(Short.MIN_VALUE)));
+        assertEquals(Integer.valueOf(Short.MAX_VALUE), converter.toInt(Short.valueOf(Short.MAX_VALUE)));
+    }
+
+    @Test
+    public void byteToIntIsLossless() {
+        assertEquals(Integer.valueOf(Byte.MIN_VALUE), converter.toInt(Byte.valueOf(Byte.MIN_VALUE)));
+        assertEquals(Integer.valueOf(Byte.MAX_VALUE), converter.toInt(Byte.valueOf(Byte.MAX_VALUE)));
+    }
+
+    @Test
     public void offsetDateTimeToDatePreservesInstant() {
         OffsetDateTime value = OffsetDateTime.parse("2026-07-13T12:34:56.789+02:00");
 

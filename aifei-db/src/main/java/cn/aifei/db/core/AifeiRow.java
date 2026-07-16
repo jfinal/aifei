@@ -598,20 +598,6 @@ public class AifeiRow<R extends AifeiRow<R>> implements Iterable<Map.Entry<Strin
         return typeConverter.toFloat(get(field));
     }
 
-    // /**
-    //  * 获取 Short 型字段值（拉低 getStr 输入效率，暂时去除该方法）
-    //  */
-    // public Short getShort(String field) {
-    //     return typeConverter.toShort(get(field));
-    // }
-
-    /**
-     * 获取 Byte 型字段值
-     */
-    public Byte getByte(String field) {
-        return typeConverter.toByte(get(field));
-    }
-
     /**
      * 获取 byte[] 型字段值。支持的 mysql 字段类型: binary, varbinary, tinyblob, blob, mediumblob, longblob
      */
@@ -727,6 +713,4 @@ public class AifeiRow<R extends AifeiRow<R>> implements Iterable<Map.Entry<Strin
         return data().entrySet().iterator();
     }
 }
-
-
 

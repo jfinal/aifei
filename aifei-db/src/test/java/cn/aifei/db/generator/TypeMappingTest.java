@@ -28,6 +28,18 @@ public class TypeMappingTest {
     private final TypeMapping mapping = new TypeMapping();
 
     @Test
+    public void shortIsNormalizedToInteger() {
+        assertEquals(Integer.class.getName(), mapping.getType(Short.class.getName()));
+        assertEquals(Integer.class.getName(), mapping.getType(Types.SMALLINT));
+    }
+
+    @Test
+    public void byteIsNormalizedToInteger() {
+        assertEquals(Integer.class.getName(), mapping.getType(Byte.class.getName()));
+        assertEquals(Integer.class.getName(), mapping.getType(Types.TINYINT));
+    }
+
+    @Test
     public void offsetTypesRequireMatchingColumnClassName() {
         assertEquals(OffsetDateTime.class.getName(), mapping.getType(OffsetDateTime.class.getName()));
         assertEquals(OffsetTime.class.getName(), mapping.getType(OffsetTime.class.getName()));

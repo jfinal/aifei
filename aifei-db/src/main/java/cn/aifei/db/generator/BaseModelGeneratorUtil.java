@@ -32,7 +32,7 @@ import java.util.Map;
 public class BaseModelGeneratorUtil {
 
     /**
-     * 针对 Model 中七种可以自动转换类型的 getter 方法，调用其具有确定类型返回值的 getter 方法
+     * 针对 Model 中可以自动转换类型的 getter 方法，调用其具有确定类型返回值的 getter 方法
      * 享用自动类型转换的便利性，例如 getInt(String)、getStr(String)
      * 其它方法使用泛型返回值方法： get(String)
      */
@@ -42,8 +42,6 @@ public class BaseModelGeneratorUtil {
         put("Long", "getLong");
         put("Double", "getDouble");
         put("Float", "getFloat");
-        put("Short", "getShort");
-        put("Byte", "getByte");
 
         // 新增两种可自动转换类型的 getter 方法
         put("java.util.Date", "getDate");
