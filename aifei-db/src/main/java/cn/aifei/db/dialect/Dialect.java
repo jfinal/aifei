@@ -110,14 +110,17 @@ public abstract class Dialect {
             for (int i = 0, size = paras.size(); i < size; i++) {
                 Object value = paras.get(i);
                 if (value instanceof java.util.Date) {
-                    if (value instanceof java.sql.Date) {
+                    if (value.getClass() == java.util.Date.class) {
+                        // 普通 Date 表示时间点，按 JDBC TIMESTAMP 绑定。
+                        pst.setTimestamp(i + 1, new java.sql.Timestamp(((java.util.Date) value).getTime()));
+                    } else if (value instanceof java.sql.Timestamp) {
+                        pst.setTimestamp(i + 1, (java.sql.Timestamp) value);
+                    } else if (value instanceof java.sql.Date) {
                         pst.setDate(i + 1, (java.sql.Date) value);
                     } else if (value instanceof java.sql.Time) {
                         pst.setTime(i + 1, (java.sql.Time) value);
-                    } else if (value instanceof java.sql.Timestamp) {
-                        pst.setTimestamp(i + 1, (java.sql.Timestamp) value);
                     } else {
-                        // 普通 Date 表示时间点，按 JDBC TIMESTAMP 绑定。
+                        // 其它 java.util.Date 子类也按时间点处理。
                         pst.setTimestamp(i + 1, new java.sql.Timestamp(((java.util.Date) value).getTime()));
                     }
                 } else {
@@ -421,6 +424,5 @@ public abstract class Dialect {
         return new SqlPara(sql.toString(), sqlPara.getPara());
     }
 }
-
 
 
