@@ -101,8 +101,9 @@ public abstract class Dialect {
     }
 
     /**
-     * fillStatement 时处理日期类型。除 mysql 以外的数据库需使用本方法
-     * 来自：jfinal Dialect.fillStatementHandleDateType(...)
+     * 保守处理 JDBC 日期参数，供不能从普通 java.util.Date
+     * 推断 SQL 类型的驱动使用。有明确驱动支持的方言可以覆盖本方法，
+     * 将参数直接交给 PreparedStatement.setObject(...)。
      */
     public void fillStatement(PreparedStatement pst, List<?> paras) throws SQLException {
         if (paras != null) {
@@ -111,12 +112,13 @@ public abstract class Dialect {
                 if (value instanceof java.util.Date) {
                     if (value instanceof java.sql.Date) {
                         pst.setDate(i + 1, (java.sql.Date) value);
+                    } else if (value instanceof java.sql.Time) {
+                        pst.setTime(i + 1, (java.sql.Time) value);
                     } else if (value instanceof java.sql.Timestamp) {
                         pst.setTimestamp(i + 1, (java.sql.Timestamp) value);
                     } else {
-                        // Oracle、SqlServer 中的 TIMESTAMP、DATE 支持 new Date() 给值
-                        java.util.Date d = (java.util.Date) value;
-                        pst.setTimestamp(i + 1, new java.sql.Timestamp(d.getTime()));
+                        // 普通 Date 表示时间点，按 JDBC TIMESTAMP 绑定。
+                        pst.setTimestamp(i + 1, new java.sql.Timestamp(((java.util.Date) value).getTime()));
                     }
                 } else {
                     pst.setObject(i + 1, value);
@@ -419,9 +421,6 @@ public abstract class Dialect {
         return new SqlPara(sql.toString(), sqlPara.getPara());
     }
 }
-
-
-
 
 
 

@@ -39,7 +39,8 @@ public class MysqlDialect extends Dialect {
     }
 
     /**
-     * 仅 Mysql 覆盖父类 fillStatement，未处理日期类型
+     * Connector/J 能根据 Java 类型正确映射 JDBC 类型，包括
+     * java.util.Date -> TIMESTAMP，因此直接交给驱动处理。
      */
     @Override
     public void fillStatement(PreparedStatement pst, List<?> paras) throws SQLException {
@@ -60,7 +61,5 @@ public class MysqlDialect extends Dialect {
         return new SqlPara(ret.toString(), sqlPara.getPara());
     }
 }
-
-
 
 

@@ -17,6 +17,9 @@
 package cn.aifei.db.dialect;
 
 import cn.aifei.db.core.SqlPara;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -39,6 +42,18 @@ public class SqlServerDialect extends Dialect {
         return ']';
     }
 
+    /**
+     * Microsoft JDBC Driver 4.2+ 将 java.util.Date 明确映射为 JDBC TIMESTAMP。
+     */
+    @Override
+    public void fillStatement(PreparedStatement pst, List<?> paras) throws SQLException {
+        if (paras != null) {
+            for (int i = 0, size = paras.size(); i < size; i++) {
+                pst.setObject(i + 1, paras.get(i));
+            }
+        }
+    }
+
     @Override
     public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
         int end = pageNum * pageSize;
@@ -59,5 +74,4 @@ public class SqlServerDialect extends Dialect {
         return new SqlPara(ret.toString(), sqlPara.getPara());
     }
 }
-
 

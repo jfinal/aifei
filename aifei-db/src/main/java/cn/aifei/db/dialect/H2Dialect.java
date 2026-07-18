@@ -47,19 +47,18 @@ public class H2Dialect extends Dialect {
     }
 
     /**
-     * blob column data using setBytes()
-     *
-     * 注意：H2Database 有独立的 fillStatement(...)
+     * H2 的 byte[] 使用 setBytes()；驱动本身能区分 JDBC 日期子类，
+     * 并将普通 java.util.Date 按 TIMESTAMP 处理。
      */
     @Override
     public void fillStatement(PreparedStatement pst, List<?> paras) throws SQLException {
         if (paras != null) {
             for (int i = 0, size = paras.size(); i < size; i++) {
-                Object para = paras.get(i);
-                if (para instanceof byte[]) {
-                    pst.setBytes(i + 1, (byte[]) para);
+                Object value = paras.get(i);
+                if (value instanceof byte[]) {
+                    pst.setBytes(i + 1, (byte[]) value);
                 } else {
-                    pst.setObject(i + 1, para);
+                    pst.setObject(i + 1, value);
                 }
             }
         }
@@ -117,7 +116,5 @@ public class H2Dialect extends Dialect {
         return new SqlPara(ret.toString(), sqlPara.getPara());
     }
 }
-
-
 
 

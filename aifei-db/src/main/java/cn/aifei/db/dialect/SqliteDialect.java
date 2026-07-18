@@ -17,6 +17,9 @@
 package cn.aifei.db.dialect;
 
 import cn.aifei.db.core.SqlPara;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * SqliteDialect.
@@ -33,6 +36,19 @@ public class SqliteDialect extends Dialect {
 		return '"';
 	}
 
+	/**
+	 * Xerial SQLite JDBC 的 setObject(...) 直接支持 java.util.Date，
+	 * 并使用驱动配置的日期存储格式。
+	 */
+	@Override
+	public void fillStatement(PreparedStatement pst, List<?> paras) throws SQLException {
+		if (paras != null) {
+			for (int i = 0, size = paras.size(); i < size; i++) {
+				pst.setObject(i + 1, paras.get(i));
+			}
+		}
+	}
+
 	@Override
 	public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
 		int offset = (pageNum - 1) * pageSize;
@@ -42,7 +58,6 @@ public class SqliteDialect extends Dialect {
 		return new SqlPara(ret.toString(), sqlPara.getPara());
 	}
 }
-
 
 
 
