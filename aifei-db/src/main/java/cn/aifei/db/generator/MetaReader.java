@@ -298,10 +298,10 @@ public class MetaReader {
                     if (javaType == null) {
                         int type = rsmd.getColumnType(i);
                         javaType = typeMapping.getType(type);   // 通过 int 型 type 再取一次
+                    }
 
-                        if (javaType == null) {
-                            javaType = Object.class.getName();
-                        }
+                    if (javaType == null) {
+                        javaType = Object.class.getName();
                     }
 
                     javaType = handleJavaType(dialect, javaType, rsmd, i);
