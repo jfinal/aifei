@@ -143,17 +143,28 @@ public class TimeUtil {
     }
 
     private static String detectDatePattern(String dateString) {
-        if (       dateString.length() > "yyyy-MM-dd HH:mm:ss".length()) {
-            return "yyyy-MM-dd HH:mm:ss.SSS";
-        } else if (dateString.length() > "yyyy-MM-dd HH:mm".length()) {
-            return "yyyy-MM-dd HH:mm:ss";
-        } else if (dateString.length() > "yyyy-MM-dd HH".length()) {
-            return "yyyy-MM-dd HH:mm";
-        } else if (dateString.length() > "yyyy-MM-dd".length()) {
-            return "yyyy-MM-dd HH";
-        } else {
+        int blankIndex = dateString.indexOf(' ');
+        if (blankIndex == -1) {
             return "yyyy-MM-dd";
         }
+
+        int firstColonIndex = dateString.indexOf(':', blankIndex + 1);
+        if (firstColonIndex == -1) {
+            return "yyyy-MM-dd HH";
+        }
+
+        int secondColonIndex = dateString.indexOf(':', firstColonIndex + 1);
+        if (secondColonIndex == -1) {
+            return "yyyy-MM-dd HH:mm";
+        }
+        int dotIndex = dateString.indexOf('.', secondColonIndex + 1);
+        if (dotIndex == -1) {
+            return "yyyy-MM-dd HH:mm:ss";
+        }
+        if (dateString.length() - dotIndex - 1 != 3) {
+            throw new IllegalArgumentException("Millisecond precision must contain exactly 3 digits: \"" + dateString + "\"");
+        }
+        return "yyyy-MM-dd HH:mm:ss.SSS";
     }
 
     /**
@@ -213,6 +224,8 @@ public class TimeUtil {
         // java.sql.Date 不支持 toInstant()，需要先转换成 java.util.Date
         if (date instanceof java.sql.Date) {
             date = new Date(date.getTime());
+        } else if (date instanceof java.sql.Time) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDateTime without a date.");
         }
 
         Instant instant = date.toInstant();
@@ -227,6 +240,8 @@ public class TimeUtil {
         // java.sql.Date 不支持 toInstant()，需要先转换成 java.util.Date
         if (date instanceof java.sql.Date) {
             date = new Date(date.getTime());
+        } else if (date instanceof java.sql.Time) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDate without a date.");
         }
 
         Instant instant = date.toInstant();
@@ -239,6 +254,10 @@ public class TimeUtil {
      * java.util.Date --> java.time.LocalTime
      */
     public static LocalTime toLocalTime(Date date) {
+        if (date instanceof java.sql.Time) {
+            return ((java.sql.Time) date).toLocalTime();
+        }
+
         // java.sql.Date 不支持 toInstant()，需要先转换成 java.util.Date
         if (date instanceof java.sql.Date) {
             date = new Date(date.getTime());
