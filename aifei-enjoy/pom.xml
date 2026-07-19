@@ -16,6 +16,14 @@
     <name>aifei-enjoy</name>
     <description>Aifei Enjoy template engine</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
