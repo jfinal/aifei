@@ -205,20 +205,25 @@ public class TypeConverter implements Serializable {
 
         if (d instanceof Temporal) {
             if (d instanceof LocalDateTime) {
-                return TimeUtil.toDate((LocalDateTime) d);
+                // 按 JDBC 本地日期时间语义保留字段与纳秒，不先转换成 Instant。
+                return Timestamp.valueOf((LocalDateTime) d);
             }
             if (d instanceof LocalDate) {
-                return TimeUtil.toDate((LocalDate) d);
+                // java.sql.Date 是 java.util.Date 的子类，同时保留 SQL DATE 语义。
+                return java.sql.Date.valueOf((LocalDate) d);
             }
-            if (d instanceof LocalTime) {
-                return TimeUtil.toDate((LocalTime) d);
+            if (d instanceof Instant) {
+                return Timestamp.from((Instant) d);
             }
             if (d instanceof OffsetDateTime) {
                 // OffsetDateTime 表示确定的时间点，不能先调用 toLocalDateTime() 丢弃 offset。
-                return java.util.Date.from(((OffsetDateTime) d).toInstant());
+                return Timestamp.from(((OffsetDateTime) d).toInstant());
             }
             if (d instanceof ZonedDateTime) {
-                return java.util.Date.from(((ZonedDateTime) d).toInstant());
+                return Timestamp.from(((ZonedDateTime) d).toInstant());
+            }
+            if (d instanceof LocalTime || d instanceof OffsetTime) {
+                throw new IllegalArgumentException("Cannot convert " + d.getClass().getSimpleName() + " to java.util.Date without a date.");
             }
         }
 
@@ -252,6 +257,15 @@ public class TypeConverter implements Serializable {
             return null;
         }
 
+        if (ldt instanceof Timestamp) {
+            return ((Timestamp) ldt).toLocalDateTime();
+        }
+        if (ldt instanceof java.sql.Date) {
+            return ((java.sql.Date) ldt).toLocalDate().atStartOfDay();
+        }
+        if (ldt instanceof java.sql.Time) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDateTime without a date.");
+        }
         if (ldt instanceof java.util.Date) {
             return TimeUtil.toLocalDateTime((java.util.Date) ldt);
         }
@@ -259,8 +273,7 @@ public class TypeConverter implements Serializable {
             return ((LocalDate) ldt).atStartOfDay();
         }
         if (ldt instanceof LocalTime) {
-            // LocalTime 无法单独转为 LocalDateTime，这里默认使用当前日期填充
-            return LocalDateTime.of(LocalDate.now(), (LocalTime) ldt);
+            throw new IllegalArgumentException("Cannot convert LocalTime to LocalDateTime without a date.");
         }
 
         if (ldt instanceof String) {
@@ -291,6 +304,12 @@ public class TypeConverter implements Serializable {
             return (LocalDate) ld;
         } else if (ld == null) {
             return null;
+        } else if (ld instanceof java.sql.Date) {
+            return ((java.sql.Date) ld).toLocalDate();
+        } else if (ld instanceof Timestamp) {
+            return ((Timestamp) ld).toLocalDateTime().toLocalDate();
+        } else if (ld instanceof java.sql.Time) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDate without a date.");
         } else if (ld instanceof java.util.Date) {
             return TimeUtil.toLocalDate((java.util.Date) ld);
         } else {
@@ -303,12 +322,14 @@ public class TypeConverter implements Serializable {
             return (Timestamp) ts;
         } else if (ts == null) {
             return null;
+        } else if (ts instanceof java.sql.Time) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Time to Timestamp without a date.");
         } else if (ts instanceof java.util.Date) {
             return new Timestamp(((java.util.Date) ts).getTime());
         } else if (ts instanceof LocalDateTime) {
-            return Timestamp.from(((LocalDateTime) ts).atZone(ZoneId.systemDefault()).toInstant());
+            return Timestamp.valueOf((LocalDateTime) ts);
         } else if (ts instanceof LocalDate) {
-            return Timestamp.from(((LocalDate) ts).atStartOfDay(ZoneId.systemDefault()).toInstant());
+            return Timestamp.valueOf(((LocalDate) ts).atStartOfDay());
         } else if (ts instanceof Long) {
             return new Timestamp((Long) ts);
         }
