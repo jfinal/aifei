@@ -147,12 +147,10 @@ public class TimeUtil {
         if (blankIndex == -1) {
             return "yyyy-MM-dd";
         }
-
         int firstColonIndex = dateString.indexOf(':', blankIndex + 1);
         if (firstColonIndex == -1) {
             return "yyyy-MM-dd HH";
         }
-
         int secondColonIndex = dateString.indexOf(':', firstColonIndex + 1);
         if (secondColonIndex == -1) {
             return "yyyy-MM-dd HH:mm";
@@ -339,5 +337,4 @@ public class TimeUtil {
         return toLong(LocalDateTime.now(), type);
     }
 }
-
 
