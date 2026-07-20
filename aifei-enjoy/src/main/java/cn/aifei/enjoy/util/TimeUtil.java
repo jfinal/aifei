@@ -299,16 +299,16 @@ public class TimeUtil {
         return Date.from(instant);
     }
 
-    /**
-     * java.time.LocalTime --> java.util.Date
-     */
-    public static Date toDate(LocalTime localTime) {
-        LocalDate localDate = LocalDate.now();
-        LocalDateTime localDateTime = LocalDateTime.of(localDate, localTime);
-        ZoneId zone = ZoneId.systemDefault();
-        Instant instant = localDateTime.atZone(zone).toInstant();
-        return Date.from(instant);
-    }
+    // /**
+    //  * java.time.LocalTime --> java.util.Date
+    //  */
+    // public static Date toDate(LocalTime localTime) {
+    //     LocalDate localDate = LocalDate.now();
+    //     LocalDateTime localDateTime = LocalDateTime.of(localDate, localTime);
+    //     ZoneId zone = ZoneId.systemDefault();
+    //     Instant instant = localDateTime.atZone(zone).toInstant();
+    //     return Date.from(instant);
+    // }
 
     /**
      * java.time.LocalTime --> java.util.Date
