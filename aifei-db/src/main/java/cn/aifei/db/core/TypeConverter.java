@@ -29,14 +29,6 @@ import java.time.temporal.Temporal;
  */
 public class TypeConverter implements Serializable {
 
-    private static final String datePattern = "yyyy-MM-dd";
-    private static final int dateLen = datePattern.length();
-
-    private static final String dateTimeWithoutSecondPattern = "yyyy-MM-dd HH:mm";
-    private static final int dateTimeWithoutSecondLen = dateTimeWithoutSecondPattern.length();
-
-    private static final String dateTimePattern = "yyyy-MM-dd HH:mm:ss";
-
     public String toStr(Object s) {
         if (s instanceof String) {
             return (String) s;
@@ -125,30 +117,6 @@ public class TypeConverter implements Serializable {
         }
     }
 
-    // public Short toShort(Object n) {
-    //     if (n instanceof Short) {
-    //         return (Short) n;
-    //     } else if (n == null) {
-    //         return null;
-    //     } else if (n instanceof Number) {
-    //         return ((Number) n).shortValue();
-    //     } else {
-    //         return Short.valueOf(n.toString()); // 支持 String 类型转换
-    //     }
-    // }
-
-    // public Byte toByte(Object n) {
-    //     if (n instanceof Byte) {
-    //         return (Byte) n;
-    //     } else if (n == null) {
-    //         return null;
-    //     } else if (n instanceof Number) {
-    //         return ((Number) n).byteValue();
-    //     } else {
-    //         return Byte.valueOf(n.toString());  // 支持 String 类型转换
-    //     }
-    // }
-
     public Boolean toBoolean(Object b) {
         if (b instanceof Boolean) {
             return (Boolean) b;
@@ -228,23 +196,7 @@ public class TypeConverter implements Serializable {
         }
 
         if (d instanceof String) {
-            String s = (String) d;
-            if (s.length() <= dateLen) {
-                return TimeUtil.parse(s, datePattern);
-            } else if (s.length() > dateTimeWithoutSecondLen) {
-                return TimeUtil.parse(s, dateTimePattern);
-            } else {
-                // 判断冒号字符是否出现两次，月、日、小时、分、秒都允许是一位数，例如：2022-1-2 3:4:5
-                int index = s.indexOf(':');
-                if (index != -1) {
-                    if (index != s.lastIndexOf(':')) {
-                        return TimeUtil.parse(s, dateTimePattern);
-                    } else {
-                        return TimeUtil.parse(s, dateTimeWithoutSecondPattern);
-                    }
-                }
-            }
-            throw new IllegalArgumentException("Unrecognized Date string format: \"" + s + "\"");
+            return TimeUtil.parse((String) d);
         }
 
         throw new IllegalArgumentException("Cannot convert type " + d.getClass().getName() + " to java.util.Date.");
@@ -277,23 +229,7 @@ public class TypeConverter implements Serializable {
         }
 
         if (ldt instanceof String) {
-            String s = (String) ldt;
-            if (s.length() <= dateLen) {
-                return TimeUtil.parseLocalDateTime(s, datePattern);
-            } else if (s.length() > dateTimeWithoutSecondLen) {
-                return TimeUtil.parseLocalDateTime(s, dateTimePattern);
-            } else {
-                // 判断冒号字符是否出现两次，月、日、小时、分、秒都允许是一位数，例如：2022-1-2 3:4:5
-                int index = s.indexOf(':');
-                if (index != -1) {
-                    if (index != s.lastIndexOf(':')) {
-                        return TimeUtil.parseLocalDateTime(s, dateTimePattern);
-                    } else {
-                        return TimeUtil.parseLocalDateTime(s, dateTimeWithoutSecondPattern);
-                    }
-                }
-            }
-            throw new IllegalArgumentException("Unrecognized LocalDateTime string format: \"" + s + "\"");
+            return TimeUtil.parseLocalDateTime((String) ldt);
         }
 
         throw new IllegalArgumentException("Cannot convert type " + ldt.getClass().getName() + " to LocalDateTime.");
@@ -336,4 +272,28 @@ public class TypeConverter implements Serializable {
 
         throw new IllegalArgumentException("Cannot convert type " + ts.getClass().getName() + " to Timestamp.");
     }
+
+    // public Short toShort(Object n) {
+    //     if (n instanceof Short) {
+    //         return (Short) n;
+    //     } else if (n == null) {
+    //         return null;
+    //     } else if (n instanceof Number) {
+    //         return ((Number) n).shortValue();
+    //     } else {
+    //         return Short.valueOf(n.toString()); // 支持 String 类型转换
+    //     }
+    // }
+
+    // public Byte toByte(Object n) {
+    //     if (n instanceof Byte) {
+    //         return (Byte) n;
+    //     } else if (n == null) {
+    //         return null;
+    //     } else if (n instanceof Number) {
+    //         return ((Number) n).byteValue();
+    //     } else {
+    //         return Byte.valueOf(n.toString());  // 支持 String 类型转换
+    //     }
+    // }
 }
