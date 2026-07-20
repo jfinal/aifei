@@ -272,11 +272,8 @@ public class TimeUtil {
     public static LocalTime toLocalTime(Date date) {
         if (date instanceof java.sql.Time) {
             return ((java.sql.Time) date).toLocalTime();
-        }
-
-        // java.sql.Date 不支持 toInstant()，需要先转换成 java.util.Date
-        if (date instanceof java.sql.Date) {
-            date = new Date(date.getTime());
+        } else if (date instanceof java.sql.Date) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Date to LocalTime without a time.");
         }
 
         Instant instant = date.toInstant();
@@ -315,7 +312,7 @@ public class TimeUtil {
     // }
 
     /**
-     * java.time.LocalTime --> java.util.Date
+     * java.time.LocalDate + java.time.LocalTime --> java.util.Date
      */
     public static Date toDate(LocalDate localDate, LocalTime localTime) {
         LocalDateTime localDateTime = LocalDateTime.of(localDate, localTime);
