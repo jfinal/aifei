@@ -20,7 +20,11 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.chrono.ChronoLocalDateTime;
+import java.time.chrono.IsoEra;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -31,12 +35,8 @@ import java.util.HashMap;
  *   新转旧：LocalDateTime.atZone(ZoneId).toInstant() -> Instant -> Date.from(Instant)
  *   旧转新：Date.toInstant() -> Instant -> LocalDateTime.ofInstant(Instant, ZoneId)
  *
- * 经测试，SimpleDateFormat 比 DateTimeFormatter 对 pattern 的支持更好
- * 对于同样的 pattern 值 "yyyy-MM-dd HH:mm:ss"，前者可以转换 "2020-06-9 12:13:19"
- * 后者却不支持，原因是 pattern 的 dd 位置只有数字 9，必须要是两位数字才能支持
- *
- *
- * 所以：建议优先使用转换结果为 Date 的 parse 方法，使用 SimpleDateFormat 来转换
+ * getDateTimeFormatter 返回的格式化器在解析数字字段时不强制匹配 pattern 的位数，例如
+ * pattern 为 "yyyy-MM-dd HH:mm:ss" 时可以解析 "2026-1-2 3:4:5"，但会拒绝不存在的日期
  */
 public class TimeUtil {
 
@@ -51,14 +51,26 @@ public class TimeUtil {
     private static final ThreadLocal<HashMap<String, SimpleDateFormat>> TL = ThreadLocal.withInitial(HashMap::new);
 
     public static DateTimeFormatter getDateTimeFormatter(String pattern) {
-        return formatters.computeIfAbsent(pattern, DateTimeFormatter::ofPattern);
+        return formatters.computeIfAbsent(pattern, TimeUtil::createDateTimeFormatter);
+    }
+
+    /**
+     * 创建数字字段输入宽度宽松、日期合法性校验严格的 DateTimeFormatter
+     */
+    private static DateTimeFormatter createDateTimeFormatter(String pattern) {
+        return new DateTimeFormatterBuilder()
+                .parseLenient()                                         // 作用于后续追加的解析规则，允许数字字段使用较少位数
+                .appendPattern(pattern)
+                .parseDefaulting(ChronoField.ERA, IsoEra.CE.getValue()) // yyyy 对应 YEAR_OF_ERA，严格模式下需要默认补充公元纪元
+                .toFormatter()
+                .withResolverStyle(ResolverStyle.STRICT);               // 拒绝越界值和不存在的日期，如 "2020-2-30"
     }
 
     public static SimpleDateFormat getSimpleDateFormat(String pattern) {
         SimpleDateFormat ret = TL.get().get(pattern);
         if (ret == null) {
             ret = new SimpleDateFormat(pattern);
-            ret.setLenient(false);  // "yyyy-MM-dd HH:mm" 支持 "2026-1-2 3:4"，但不支持 "2020-1-99 3:4"
+            ret.setLenient(false);                                      // 允许数字字段不补零，但拒绝越界值和不存在的日期
             TL.get().put(pattern, ret);
         }
         return ret;
@@ -339,4 +351,3 @@ public class TimeUtil {
         return toLong(LocalDateTime.now(), type);
     }
 }
-
