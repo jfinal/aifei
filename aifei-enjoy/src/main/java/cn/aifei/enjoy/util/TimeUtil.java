@@ -237,9 +237,8 @@ public class TimeUtil {
      * java.util.Date --> java.time.LocalDateTime
      */
     public static LocalDateTime toLocalDateTime(Date date) {
-        // java.sql.Date 不支持 toInstant()，需要先转换成 java.util.Date
         if (date instanceof java.sql.Date) {
-            date = new Date(date.getTime());
+            return ((java.sql.Date) date).toLocalDate().atStartOfDay();
         } else if (date instanceof java.sql.Time) {
             throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDateTime without a date.");
         }
@@ -253,9 +252,8 @@ public class TimeUtil {
      * java.util.Date --> java.time.LocalDate
      */
     public static LocalDate toLocalDate(Date date) {
-        // java.sql.Date 不支持 toInstant()，需要先转换成 java.util.Date
         if (date instanceof java.sql.Date) {
-            date = new Date(date.getTime());
+            return ((java.sql.Date) date).toLocalDate();
         } else if (date instanceof java.sql.Time) {
             throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDate without a date.");
         }
