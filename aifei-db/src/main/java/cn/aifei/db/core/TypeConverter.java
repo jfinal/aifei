@@ -165,7 +165,7 @@ public class TypeConverter implements Serializable {
     }
 
     public java.util.Date toDate(Object d) {
-        if (d instanceof java.util.Date) {
+        if (d instanceof java.util.Date) {  // 支持由数据库而来的高频类型 java.sql.Timestamp
             return (java.util.Date) d;
         } else if (d == null) {
             return null;
