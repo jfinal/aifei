@@ -17,6 +17,7 @@
 package cn.aifei.enjoy.util;
 
 import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.chrono.ChronoLocalDateTime;
@@ -128,11 +129,13 @@ public class TimeUtil {
      * 按指定 pattern 将 String 转换成 Date
      */
     public static Date parse(String dateString, String pattern) {
-        try {
-            return getSimpleDateFormat(pattern).parse(dateString);
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
+        ParsePosition position = new ParsePosition(0);
+        Date ret = getSimpleDateFormat(pattern).parse(dateString, position);
+        if (ret == null || position.getIndex() != dateString.length()) {
+            int errorIndex = position.getErrorIndex() != -1 ? position.getErrorIndex() : position.getIndex();
+            throw new RuntimeException(new ParseException("Unparseable date: \"" + dateString + "\"", errorIndex));
         }
+        return ret;
     }
 
     /**
