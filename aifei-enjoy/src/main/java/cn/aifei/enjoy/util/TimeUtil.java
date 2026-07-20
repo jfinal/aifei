@@ -45,19 +45,20 @@ public class TimeUtil {
      */
     private static final ComputeCache<String, DateTimeFormatter> formatters = new ComputeCache<>();
 
+    /**
+     * 结合 ThreadLocal 缓存 "非线程安全" 的 SimpleDateFormat，使用严格解析模式
+     */
+    private static final ThreadLocal<HashMap<String, SimpleDateFormat>> TL = ThreadLocal.withInitial(HashMap::new);
+
     public static DateTimeFormatter getDateTimeFormatter(String pattern) {
         return formatters.computeIfAbsent(pattern, DateTimeFormatter::ofPattern);
     }
-
-    /**
-     * 结合 ThreadLocal 缓存 "非线程安全" 的 SimpleDateFormat
-     */
-    private static final ThreadLocal<HashMap<String, SimpleDateFormat>> TL = ThreadLocal.withInitial(HashMap::new);
 
     public static SimpleDateFormat getSimpleDateFormat(String pattern) {
         SimpleDateFormat ret = TL.get().get(pattern);
         if (ret == null) {
             ret = new SimpleDateFormat(pattern);
+            ret.setLenient(false);  // "yyyy-MM-dd HH:mm" 支持 "2026-1-2 3:4"，但不支持 "2020-1-99 3:4"
             TL.get().put(pattern, ret);
         }
         return ret;
