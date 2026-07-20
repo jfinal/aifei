@@ -59,18 +59,22 @@ public class TimeUtil {
      */
     private static DateTimeFormatter createDateTimeFormatter(String pattern) {
         return new DateTimeFormatterBuilder()
-                .parseLenient()                                         // 作用于后续追加的解析规则，允许数字字段使用较少位数
+                // 作用于后续追加的解析规则，允许数字字段使用较少位数
+                .parseLenient()
                 .appendPattern(pattern)
-                .parseDefaulting(ChronoField.ERA, IsoEra.CE.getValue()) // yyyy 对应 YEAR_OF_ERA，严格模式下需要默认补充公元纪元
+                // yyyy 对应 YEAR_OF_ERA，严格模式下需要默认补充公元纪元
+                .parseDefaulting(ChronoField.ERA, IsoEra.CE.getValue())
                 .toFormatter()
-                .withResolverStyle(ResolverStyle.STRICT);               // 拒绝越界值和不存在的日期，如 "2020-2-30"
+                // 拒绝越界值和不存在的日期，如 "2020-2-30"
+                .withResolverStyle(ResolverStyle.STRICT);
     }
 
     public static SimpleDateFormat getSimpleDateFormat(String pattern) {
         SimpleDateFormat ret = TL.get().get(pattern);
         if (ret == null) {
             ret = new SimpleDateFormat(pattern);
-            ret.setLenient(false);                                      // 允许数字字段不补零，但拒绝越界值和不存在的日期
+            // 允许数字字段不补零，但拒绝越界值和不存在的日期
+            ret.setLenient(false);
             TL.get().put(pattern, ret);
         }
         return ret;
