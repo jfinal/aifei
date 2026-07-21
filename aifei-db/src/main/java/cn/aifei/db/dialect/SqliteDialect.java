@@ -66,12 +66,12 @@ public class SqliteDialect extends Dialect {
 	 * DATETIME、TIMESTAMP 交由 Dialect 默认实现通过 getTimestamp(int) 读取。
 	 */
 	@Override
-	public Object readColumnValue(ResultSet rs, int columnIndex, int jdbcType) throws SQLException {
+	public Object readColumnValue(ResultSet resultSet, int columnIndex, int jdbcType) throws SQLException {
         if (jdbcType == Types.BOOLEAN) {
-            boolean bool = rs.getBoolean(columnIndex);
-            return rs.wasNull() ? null : bool;
+            boolean bool = resultSet.getBoolean(columnIndex);
+            return resultSet.wasNull() ? null : bool;
         } else {
-			return super.readColumnValue(rs, columnIndex, jdbcType);
+			return super.readColumnValue(resultSet, columnIndex, jdbcType);
 		}
     }
 }

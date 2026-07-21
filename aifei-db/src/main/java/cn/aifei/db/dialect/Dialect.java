@@ -436,18 +436,18 @@ public abstract class Dialect {
      * 由具体 Dialect 覆盖本方法，并可将其它类型交回 super.readColumnValue(...)。
      * </pre>
      */
-    public Object readColumnValue(ResultSet rs, int columnIndex, int jdbcType) throws SQLException {
+    public Object readColumnValue(ResultSet resultSet, int columnIndex, int jdbcType) throws SQLException {
         // String、Integer、Long、byte[] 等高频类型走 getObject 快速路径。
         // JDBC Types 常量的数值不是类型分类；这个判断只是性能优化，DATE、TIMESTAMP 在下方明确读取。
         if (jdbcType < Types.DATE) {
-            return rs.getObject(columnIndex);
+            return resultSet.getObject(columnIndex);
         } else if (jdbcType == Types.TIMESTAMP) {
-            return rs.getTimestamp(columnIndex);
+            return resultSet.getTimestamp(columnIndex);
         } else if (jdbcType == Types.DATE) {
-            return rs.getDate(columnIndex);
+            return resultSet.getDate(columnIndex);
         }
 
-        Object value = rs.getObject(columnIndex);
+        Object value = resultSet.getObject(columnIndex);
         switch (jdbcType) {
             case Types.BLOB:
                 return value instanceof Blob ? handleBlob((Blob) value) : value;
