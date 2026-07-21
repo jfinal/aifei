@@ -168,23 +168,23 @@ public class TimeUtil {
     }
 
     private static String detectDatePattern(String dateString) {
-        int blankIndex = dateString.indexOf(' ');
-        if (blankIndex == -1) {
+        int space = dateString.indexOf(' ');
+        if (space == -1) {
             return "yyyy-MM-dd";
         }
-        int firstColonIndex = dateString.indexOf(':', blankIndex + 1);
-        if (firstColonIndex == -1) {
+        int firstColon = dateString.indexOf(':', space + 1);
+        if (firstColon == -1) {
             return "yyyy-MM-dd HH";
         }
-        int secondColonIndex = dateString.indexOf(':', firstColonIndex + 1);
-        if (secondColonIndex == -1) {
+        int secondColon = dateString.indexOf(':', firstColon + 1);
+        if (secondColon == -1) {
             return "yyyy-MM-dd HH:mm";
         }
-        int dotIndex = dateString.indexOf('.', secondColonIndex + 1);
-        if (dotIndex == -1) {
+        int dot = dateString.indexOf('.', secondColon + 1);
+        if (dot == -1) {
             return "yyyy-MM-dd HH:mm:ss";
         }
-        if (dateString.length() - dotIndex - 1 != 3) {
+        if (dateString.length() - dot - 1 != 3) {
             throw new IllegalArgumentException("Millisecond precision must contain exactly 3 digits: \"" + dateString + "\"");
         }
         return "yyyy-MM-dd HH:mm:ss.SSS";
