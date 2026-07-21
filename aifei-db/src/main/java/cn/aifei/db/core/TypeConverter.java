@@ -124,18 +124,6 @@ public class TypeConverter implements Serializable {
             return null;
         }
 
-        // 支持 String
-        if (b instanceof String) {
-            String s = (String) b;
-            if ("true".equals(s) || "1".equals(s)) {
-                return Boolean.TRUE;
-            } else if ("false".equals(s) || "0".equals(s)) {
-                return Boolean.FALSE;
-            } else {
-                throw new IllegalArgumentException("Cannot convert String value \"" + s + "\" to Boolean. Only 'true', 'false', '1', and '0' are supported.");
-            }
-        }
-
         // 支持 Number
         if (b instanceof Number) {
             int n = ((Number) b).intValue();
@@ -145,6 +133,18 @@ public class TypeConverter implements Serializable {
                 return Boolean.FALSE;
             } else {
                 throw new IllegalArgumentException("Cannot convert Number value " + n + " to Boolean. Only 0 and 1 are supported.");
+            }
+        }
+
+        // 支持 String
+        if (b instanceof String) {
+            String s = (String) b;
+            if ("true".equals(s) || "1".equals(s)) {
+                return Boolean.TRUE;
+            } else if ("false".equals(s) || "0".equals(s)) {
+                return Boolean.FALSE;
+            } else {
+                throw new IllegalArgumentException("Cannot convert String value \"" + s + "\" to Boolean. Only 'true', 'false', '1', and '0' are supported.");
             }
         }
 
