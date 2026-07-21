@@ -334,22 +334,37 @@ public class BasicArguments {
 
     // --------------------------------------------------------------------------------------------
 
-    private enum DatePattern {
+    private enum TemporalPattern {
         DATE_ONLY("yyyy-MM-dd"),
         DATE_TIME_TO_HOUR("yyyy-MM-dd HH"),
         DATE_TIME_TO_MINUTE("yyyy-MM-dd HH:mm"),
         DATE_TIME_TO_SECOND("yyyy-MM-dd HH:mm:ss"),
-        DATE_TIME_TO_MILLISECOND("yyyy-MM-dd HH:mm:ss.SSS");
+        DATE_TIME_TO_MILLISECOND("yyyy-MM-dd HH:mm:ss.SSS"),
+        TIME_ONLY("HH:mm:ss");
 
         final String pattern;
         final DateTimeFormatter formatter;
 
-        DatePattern(String pattern) {
+        TemporalPattern(String pattern) {
             this.pattern = pattern;
-            this.formatter = createDateTimeFormatter(pattern);
+            this.formatter = createFormatter(pattern);
         }
 
-        static DatePattern detect(String str) {
+        private static DateTimeFormatter createFormatter(String pattern) {
+            return new DateTimeFormatterBuilder()
+                    // 作用于后续追加的解析规则，允许数字字段使用较少位数
+                    .parseLenient()
+                    .appendPattern(pattern)
+                    // yyyy 对应 YEAR_OF_ERA，严格模式下需要默认补充公元纪元
+                    .parseDefaulting(ChronoField.ERA, IsoEra.CE.getValue())
+                    // 仅有日期时默认为当天零点，分、秒和纳秒由解析器自动补零
+                    .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+                    .toFormatter()
+                    // 拒绝越界值和不存在的日期，如 "2020-2-30"
+                    .withResolverStyle(ResolverStyle.STRICT);
+        }
+
+        static TemporalPattern detect(String str) {
             int space = str.indexOf(' ');
             if (space == -1) {
                 return DATE_ONLY;
@@ -373,20 +388,6 @@ public class BasicArguments {
         }
     }
 
-    private static DateTimeFormatter createDateTimeFormatter(String pattern) {
-        return new DateTimeFormatterBuilder()
-                // 作用于后续追加的解析规则，允许数字字段使用较少位数
-                .parseLenient()
-                .appendPattern(pattern)
-                // yyyy 对应 YEAR_OF_ERA，严格模式下需要默认补充公元纪元
-                .parseDefaulting(ChronoField.ERA, IsoEra.CE.getValue())
-                // 仅有日期时默认为当天零点，分、秒和纳秒由解析器自动补零
-                .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-                .toFormatter()
-                // 拒绝越界值和不存在的日期，如 "2020-2-30"
-                .withResolverStyle(ResolverStyle.STRICT);
-    }
-
     /**
      * DateArgument
      */
@@ -402,13 +403,13 @@ public class BasicArguments {
             return ret != null ? ret : defaultValue;
         }
         protected Date parseDefaultValue(String str) {
-            DatePattern datePattern = DatePattern.detect(str);
-            SimpleDateFormat dateFormat = new SimpleDateFormat(datePattern.pattern);
+            TemporalPattern temporalPattern = TemporalPattern.detect(str);
+            SimpleDateFormat dateFormat = new SimpleDateFormat(temporalPattern.pattern);
             dateFormat.setLenient(false);   // 允许数字字段不补零，但拒绝越界值和不存在的日期
             ParsePosition position = new ParsePosition(0);
             Date ret = dateFormat.parse(str, position);
             if (ret == null || position.getIndex() != str.length()) {
-                throw new IllegalArgumentException("Invalid date string \"" + str + "\" for pattern \"" + datePattern.pattern + "\".");
+                throw new IllegalArgumentException("Invalid date string \"" + str + "\" for pattern \"" + temporalPattern.pattern + "\".");
             }
             return ret;
         }
@@ -429,7 +430,7 @@ public class BasicArguments {
             return ret != null ? ret : defaultValue;
         }
         protected LocalDateTime parseDefaultValue(String str) {
-            return LocalDateTime.parse(str, DatePattern.detect(str).formatter);
+            return LocalDateTime.parse(str, TemporalPattern.detect(str).formatter);
         }
     }
 
@@ -448,7 +449,7 @@ public class BasicArguments {
             return ret != null ? ret : defaultValue;
         }
         protected LocalDate parseDefaultValue(String str) {
-            return LocalDate.parse(str, DatePattern.DATE_ONLY.formatter);
+            return LocalDate.parse(str, TemporalPattern.DATE_ONLY.formatter);
         }
     }
 
@@ -467,8 +468,7 @@ public class BasicArguments {
             return ret != null ? ret : defaultValue;
         }
         protected LocalTime parseDefaultValue(String str) {
-            return LocalTime.parse(str, createDateTimeFormatter("HH:mm:ss"));
+            return LocalTime.parse(str, TemporalPattern.TIME_ONLY.formatter);
         }
     }
 }
-
