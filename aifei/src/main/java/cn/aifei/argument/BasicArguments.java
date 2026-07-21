@@ -21,12 +21,16 @@ import cn.aifei.core.Output;
 import cn.aifei.util.StrUtil;
 import java.lang.reflect.Parameter;
 import java.math.BigDecimal;
-import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.chrono.IsoEra;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
 import java.util.Date;
 
 /**
@@ -330,20 +334,57 @@ public class BasicArguments {
 
     // --------------------------------------------------------------------------------------------
 
-    private static String detectDatePattern(String str) {
-        String pattern;
-        if (       str.length() > "yyyy-MM-dd HH:mm:ss".length()) {
-            pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-        } else if (str.length() > "yyyy-MM-dd HH:mm".length()) {
-            pattern = "yyyy-MM-dd HH:mm:ss";
-        } else if (str.length() > "yyyy-MM-dd HH".length()) {
-            pattern = "yyyy-MM-dd HH:mm";
-        } else if (str.length() > "yyyy-MM-dd".length()) {
-            pattern = "yyyy-MM-dd HH";
-        } else {
-            pattern = "yyyy-MM-dd";
+    private enum DatePattern {
+        DATE_ONLY("yyyy-MM-dd"),
+        DATE_TIME_TO_HOUR("yyyy-MM-dd HH"),
+        DATE_TIME_TO_MINUTE("yyyy-MM-dd HH:mm"),
+        DATE_TIME_TO_SECOND("yyyy-MM-dd HH:mm:ss"),
+        DATE_TIME_TO_MILLISECOND("yyyy-MM-dd HH:mm:ss.SSS");
+
+        final String pattern;
+        final DateTimeFormatter formatter;
+
+        DatePattern(String pattern) {
+            this.pattern = pattern;
+            this.formatter = createDateTimeFormatter(pattern);
         }
-        return pattern;
+
+        static DatePattern detect(String str) {
+            int space = str.indexOf(' ');
+            if (space == -1) {
+                return DATE_ONLY;
+            }
+            int firstColon = str.indexOf(':', space + 1);
+            if (firstColon == -1) {
+                return DATE_TIME_TO_HOUR;
+            }
+            int secondColon = str.indexOf(':', firstColon + 1);
+            if (secondColon == -1) {
+                return DATE_TIME_TO_MINUTE;
+            }
+            int dot = str.indexOf('.', secondColon + 1);
+            if (dot == -1) {
+                return DATE_TIME_TO_SECOND;
+            }
+            if (str.length() - dot - 1 != 3) {
+                throw new IllegalArgumentException("Millisecond precision must contain exactly 3 digits: \"" + str + "\"");
+            }
+            return DATE_TIME_TO_MILLISECOND;
+        }
+    }
+
+    private static DateTimeFormatter createDateTimeFormatter(String pattern) {
+        return new DateTimeFormatterBuilder()
+                // 作用于后续追加的解析规则，允许数字字段使用较少位数
+                .parseLenient()
+                .appendPattern(pattern)
+                // yyyy 对应 YEAR_OF_ERA，严格模式下需要默认补充公元纪元
+                .parseDefaulting(ChronoField.ERA, IsoEra.CE.getValue())
+                // 仅有日期时默认为当天零点，分、秒和纳秒由解析器自动补零
+                .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+                .toFormatter()
+                // 拒绝越界值和不存在的日期，如 "2020-2-30"
+                .withResolverStyle(ResolverStyle.STRICT);
     }
 
     /**
@@ -361,50 +402,15 @@ public class BasicArguments {
             return ret != null ? ret : defaultValue;
         }
         protected Date parseDefaultValue(String str) {
-            try {
-                String pattern = detectDatePattern(str);
-                return new SimpleDateFormat(pattern).parse(str);
-            } catch (ParseException e) {
-                throw new IllegalArgumentException(e);
+            DatePattern datePattern = DatePattern.detect(str);
+            SimpleDateFormat dateFormat = new SimpleDateFormat(datePattern.pattern);
+            dateFormat.setLenient(false);   // 允许数字字段不补零，但拒绝越界值和不存在的日期
+            ParsePosition position = new ParsePosition(0);
+            Date ret = dateFormat.parse(str, position);
+            if (ret == null || position.getIndex() != str.length()) {
+                throw new IllegalArgumentException("Invalid date string \"" + str + "\" for pattern \"" + datePattern.pattern + "\".");
             }
-        }
-    }
-
-    /**
-     * LocalDateArgument
-     */
-    public static class LocalDateArgument extends Argument<Input, Output, LocalDate> {
-        public void init(Parameter parameter) {
-            super.init(parameter);
-            if (pathPara) {
-                throw new IllegalArgumentException("LocalDateArgument 不支持 path parameter");
-            }
-        }
-        public LocalDate getValue(Input input, Output output) {
-            LocalDate ret = input.getLocalDate(name);
-            return ret != null ? ret : defaultValue;
-        }
-        protected LocalDate parseDefaultValue(String str) {
-            return LocalDate.parse(str, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        }
-    }
-
-    /**
-     * LocalTimeArgument
-     */
-    public static class LocalTimeArgument extends Argument<Input, Output, LocalTime> {
-        public void init(Parameter parameter) {
-            super.init(parameter);
-            if (pathPara) {
-                throw new IllegalArgumentException("LocalTimeArgument 不支持 path parameter");
-            }
-        }
-        public LocalTime getValue(Input input, Output output) {
-            LocalTime ret = input.getLocalTime(name);
-            return ret != null ? ret : defaultValue;
-        }
-        protected LocalTime parseDefaultValue(String str) {
-            return LocalTime.parse(str, DateTimeFormatter.ofPattern("HH:mm:ss"));
+            return ret;
         }
     }
 
@@ -423,12 +429,46 @@ public class BasicArguments {
             return ret != null ? ret : defaultValue;
         }
         protected LocalDateTime parseDefaultValue(String str) {
-            String pattern = detectDatePattern(str);
-            return LocalDateTime.parse(str, DateTimeFormatter.ofPattern(pattern));
+            return LocalDateTime.parse(str, DatePattern.detect(str).formatter);
+        }
+    }
+
+    /**
+     * LocalDateArgument
+     */
+    public static class LocalDateArgument extends Argument<Input, Output, LocalDate> {
+        public void init(Parameter parameter) {
+            super.init(parameter);
+            if (pathPara) {
+                throw new IllegalArgumentException("LocalDateArgument 不支持 path parameter");
+            }
+        }
+        public LocalDate getValue(Input input, Output output) {
+            LocalDate ret = input.getLocalDate(name);
+            return ret != null ? ret : defaultValue;
+        }
+        protected LocalDate parseDefaultValue(String str) {
+            return LocalDate.parse(str, DatePattern.DATE_ONLY.formatter);
+        }
+    }
+
+    /**
+     * LocalTimeArgument
+     */
+    public static class LocalTimeArgument extends Argument<Input, Output, LocalTime> {
+        public void init(Parameter parameter) {
+            super.init(parameter);
+            if (pathPara) {
+                throw new IllegalArgumentException("LocalTimeArgument 不支持 path parameter");
+            }
+        }
+        public LocalTime getValue(Input input, Output output) {
+            LocalTime ret = input.getLocalTime(name);
+            return ret != null ? ret : defaultValue;
+        }
+        protected LocalTime parseDefaultValue(String str) {
+            return LocalTime.parse(str, createDateTimeFormatter("HH:mm:ss"));
         }
     }
 }
-
-
-
 
