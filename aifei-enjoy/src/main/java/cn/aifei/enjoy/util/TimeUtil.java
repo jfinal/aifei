@@ -47,15 +47,15 @@ public class TimeUtil {
     /**
      * 缓存线程安全的 DateTimeFormatter
      */
-    private static final ComputeCache<String, DateTimeFormatter> formatters = new ComputeCache<>();
+    private static final ComputeCache<String, DateTimeFormatter> dateTimeFormatterCache = new ComputeCache<>();
 
     /**
      * 结合 ThreadLocal 缓存 "非线程安全" 的 SimpleDateFormat，使用严格解析模式
      */
-    private static final ThreadLocal<HashMap<String, SimpleDateFormat>> TL = ThreadLocal.withInitial(HashMap::new);
+    private static final ThreadLocal<HashMap<String, SimpleDateFormat>> simpleDateFormatCache = ThreadLocal.withInitial(HashMap::new);
 
     public static DateTimeFormatter getDateTimeFormatter(String pattern) {
-        return formatters.computeIfAbsent(pattern, TimeUtil::createDateTimeFormatter);
+        return dateTimeFormatterCache.computeIfAbsent(pattern, TimeUtil::createDateTimeFormatter);
     }
 
     /**
@@ -76,12 +76,13 @@ public class TimeUtil {
     }
 
     public static SimpleDateFormat getSimpleDateFormat(String pattern) {
-        SimpleDateFormat ret = TL.get().get(pattern);
+        HashMap<String, SimpleDateFormat> cache = simpleDateFormatCache.get();
+        SimpleDateFormat ret = cache.get(pattern);
         if (ret == null) {
             ret = new SimpleDateFormat(pattern);
             // 允许数字字段不补零，但拒绝越界值和不存在的日期
             ret.setLenient(false);
-            TL.get().put(pattern, ret);
+            cache.put(pattern, ret);
         }
         return ret;
     }
