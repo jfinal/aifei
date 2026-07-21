@@ -430,16 +430,21 @@ public abstract class Dialect {
      * 从 ResultSet 读取字段值。
      *
      * <pre>
-     * 默认通过 ResultSet.getObject(int) 保留 JDBC 驱动返回的类型，仅对驱动实际
-     * 返回的 LOB 对象做物化处理。数据库或 JDBC 驱动有特殊读取规则时，
+     * DATE、TIMESTAMP 分别通过 ResultSet.getDate(int)、getTimestamp(int) 读取，
+     * 以统一不同 JDBC 驱动的返回类型；其它类型默认通过 getObject(int) 读取，
+     * 并对驱动实际返回的 LOB 对象做物化处理。数据库或 JDBC 驱动有特殊读取规则时，
      * 由具体 Dialect 覆盖本方法，并可将其它类型交回 super.readColumnValue(...)。
      * </pre>
      */
     public Object readColumnValue(ResultSet rs, int columnIndex, int jdbcType) throws SQLException {
         // String、Integer、Long、byte[] 等高频类型走 getObject 快速路径。
-        // JDBC Types 常量的数值不是类型分类；这个判断只是性能优化，其余类型仍以 getObject 兜底。
+        // JDBC Types 常量的数值不是类型分类；这个判断只是性能优化，DATE、TIMESTAMP 在下方明确读取。
         if (jdbcType < Types.DATE) {
             return rs.getObject(columnIndex);
+        } else if (jdbcType == Types.TIMESTAMP) {
+            return rs.getTimestamp(columnIndex);
+        } else if (jdbcType == Types.DATE) {
+            return rs.getDate(columnIndex);
         }
 
         Object value = rs.getObject(columnIndex);

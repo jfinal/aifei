@@ -20,7 +20,6 @@ import cn.aifei.db.core.SqlPara;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 
@@ -62,22 +61,18 @@ public class SqliteDialect extends Dialect {
 	}
 
 	/**
-	 * SQLite 没有独立的日期时间与布尔存储类型，Xerial JDBC 的 getObject(int)
-	 * 会根据实际 storage class 将 DATETIME 返回为 String、将 BOOLEAN 返回为 Integer。
-	 * 这里将两者转换成与 MySQL Connector/J 默认返回类型一致的 LocalDateTime、Boolean。
+	 * SQLite 没有独立的布尔存储类型，Xerial JDBC 的 getObject(int) 会根据
+	 * 实际 storage class 将 BOOLEAN 返回为 Integer，这里统一转换成 Boolean。
+	 * DATETIME、TIMESTAMP 交由 Dialect 默认实现通过 getTimestamp(int) 读取。
 	 */
 	@Override
 	public Object readColumnValue(ResultSet rs, int columnIndex, int jdbcType) throws SQLException {
-		switch (jdbcType) {
-			case Types.TIMESTAMP:
-				Timestamp value = rs.getTimestamp(columnIndex);
-				return value != null ? value.toLocalDateTime() : null;
-			case Types.BOOLEAN:
-				boolean bool = rs.getBoolean(columnIndex);
-				return rs.wasNull() ? null : bool;
-			default:
-				return super.readColumnValue(rs, columnIndex, jdbcType);
+        if (jdbcType == Types.BOOLEAN) {
+            boolean bool = rs.getBoolean(columnIndex);
+            return rs.wasNull() ? null : bool;
+        } else {
+			return super.readColumnValue(rs, columnIndex, jdbcType);
 		}
-	}
+    }
 }
 
