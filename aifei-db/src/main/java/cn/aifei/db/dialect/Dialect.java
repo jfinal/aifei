@@ -20,6 +20,8 @@ import cn.aifei.db.core.Cpc;
 import cn.aifei.db.core.AifeiRow;
 import cn.aifei.db.core.SqlPara;
 import cn.aifei.db.util.PageSqlUtil;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.*;
@@ -423,6 +425,76 @@ public abstract class Dialect {
         sql.append("SELECT COUNT(*) ").append(sqlWithoutSelect);
         return new SqlPara(sql.toString(), sqlPara.getPara());
     }
-}
 
+    /**
+     * 从 ResultSet 读取字段值。
+     *
+     * <pre>
+     * 默认通过 ResultSet.getObject(int) 保留 JDBC 驱动返回的类型，仅对驱动实际
+     * 返回的 LOB 对象做物化处理。数据库或 JDBC 驱动有特殊读取规则时，
+     * 由具体 Dialect 覆盖本方法，并可将其它类型交回 super.readColumnValue(...)。
+     * </pre>
+     */
+    public Object readColumnValue(ResultSet rs, int columnIndex, int jdbcType) throws SQLException {
+        // String、Integer、Long、byte[] 等高频类型走 getObject 快速路径。
+        // JDBC Types 常量的数值不是类型分类；这个判断只是性能优化，其余类型仍以 getObject 兜底。
+        if (jdbcType < Types.DATE) {
+            return rs.getObject(columnIndex);
+        }
+
+        Object value = rs.getObject(columnIndex);
+        switch (jdbcType) {
+            case Types.BLOB:
+                return value instanceof Blob ? handleBlob((Blob) value) : value;
+            case Types.CLOB:
+            case Types.NCLOB:
+                return value instanceof Clob ? handleClob((Clob) value) : value;
+            default:
+                return value;
+        }
+    }
+
+    protected byte[] handleBlob(Blob blob) throws SQLException {
+        if (blob == null) {
+            return null;
+        }
+
+        long length = blob.length();
+        if (length == 0) {
+            return new byte[0];
+        }
+        if (length > Integer.MAX_VALUE) {
+            throw new SQLException("Blob is too large to convert to byte[].");
+        }
+
+        try (InputStream is = blob.getBinaryStream()) {
+            if (is == null) {
+                return null;
+            }
+            byte[] data = new byte[(int) length];
+            int offset = 0;
+            while (offset < data.length) {
+                int read = is.read(data, offset, data.length - offset);
+                if (read <= 0) {
+                    break;
+                }
+                offset += read;
+            }
+            return offset == data.length ? data : Arrays.copyOf(data, offset);
+        } catch (IOException e) {
+            throw new SQLException("Failed to read Blob data.", e);
+        }
+    }
+
+    protected String handleClob(Clob clob) throws SQLException {
+        if (clob == null) {
+            return null;
+        }
+        long length = clob.length();
+        if (length > Integer.MAX_VALUE) {
+            throw new SQLException("Clob is too large to convert to String.");
+        }
+        return clob.getSubString(1, (int) length);
+    }
+}
 

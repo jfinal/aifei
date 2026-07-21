@@ -18,7 +18,10 @@ package cn.aifei.db.dialect;
 
 import cn.aifei.db.core.SqlPara;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.List;
 
 /**
@@ -57,7 +60,24 @@ public class SqliteDialect extends Dialect {
 		ret.append(findSql).append(" LIMIT ").append(offset).append(", ").append(pageSize);
 		return new SqlPara(ret.toString(), sqlPara.getPara());
 	}
+
+	/**
+	 * SQLite 没有独立的日期时间与布尔存储类型，Xerial JDBC 的 getObject(int)
+	 * 会根据实际 storage class 将 DATETIME 返回为 String、将 BOOLEAN 返回为 Integer。
+	 * 这里将两者转换成与 MySQL Connector/J 默认返回类型一致的 LocalDateTime、Boolean。
+	 */
+	@Override
+	public Object readColumnValue(ResultSet rs, int columnIndex, int jdbcType) throws SQLException {
+		switch (jdbcType) {
+			case Types.TIMESTAMP:
+				Timestamp value = rs.getTimestamp(columnIndex);
+				return value != null ? value.toLocalDateTime() : null;
+			case Types.BOOLEAN:
+				boolean bool = rs.getBoolean(columnIndex);
+				return rs.wasNull() ? null : bool;
+			default:
+				return super.readColumnValue(rs, columnIndex, jdbcType);
+		}
+	}
 }
-
-
 

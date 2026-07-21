@@ -17,13 +17,11 @@
 package cn.aifei.db.factory;
 
 import cn.aifei.db.core.*;
+import cn.aifei.db.dialect.Dialect;
 import cn.aifei.enjoy.util.InstanceUtil;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,9 +30,8 @@ import java.util.function.Function;
  * 从 ResultSet 在获取数据并放入 Row 或者 Row 的子类
  *
  * <pre>
- * 默认通过 ResultSet.getObject(...) 保留 JDBC 驱动返回的类型，仅对驱动实际返回的 LOB 对象做物化处理。
- *
- * 如需定制字段读取规则，可继承 RowFactory 并覆盖 readValue(...)。
+ * 字段读取及 LOB 物化规则由 Dialect.readColumnValue(...) 提供，
+ * RowFactory 负责构造 Row。
  * </pre>
  */
 public class RowFactory implements Serializable {
@@ -49,11 +46,12 @@ public class RowFactory implements Serializable {
         int[] types = new int[columnCount + 1];
         buildLabelNamesAndTypes(rsmd, labelNames, types);
         DataMapFactory dataMapFactory = dao.dataMapFactory();
+        Dialect dialect = dao.config().getDialect();
 
         while (rs.next()) {
             Map<String, Object> data = dataMapFactory.get();
             for (int i = 1; i <= columnCount; i++) {
-                data.put(labelNames[i], readValue(rs, i, types[i]));
+                data.put(labelNames[i], dialect.readColumnValue(rs, i, types[i]));
             }
 
             AifeiRow<?> row = newRow(dao.rowType()).data(data);
@@ -69,50 +67,6 @@ public class RowFactory implements Serializable {
         return result;
     }
 
-    /**
-     * 必须以 ResultSet.getObject(int) 作为默认读取方式。
-     *
-     * <pre>
-     * JDBC 规范明确定义：
-     * ResultSetMetaData.getColumnClassName(int) 返回调用 ResultSet.getObject(int)
-     * 读取该列时所创建对象的类名，实际对象允许是该类的子类。
-     *
-     * MetaReader 优先使用这个类名生成字段类型，因此这里不能随意改用
-     * getDate、getTimestamp 或 getObject(int, Class)，否则生成阶段看到的类型
-     * 与运行阶段的实际值可能不一致。
-     *
-     * 特别注意：getObject(int, Class) 表示请求驱动转换为指定类型，
-     * 它不是 getColumnClassName(int) 所对应的默认取值方式。
-     * TypeMapping 对时区类型也只按 getColumnClassName(int) 报告的 Offset 类名精确映射，
-     * 不能仅根据 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 就在此强制转换。
-     *
-     * 默认 TypeMapping 会将 Blob 映射成 byte[]、将 Clob/NClob 映射成 String，
-     * 所以只在 getObject 实际返回 LOB 对象时进行物化；如果驱动已经返回
-     * byte[] 或 String，则必须保留原值。
-     * </pre>
-     *
-     * @see ResultSetMetaData#getColumnClassName(int)
-     * @see ResultSet#getObject(int)
-     */
-    protected Object readValue(ResultSet rs, int column, int jdbcType) throws SQLException {
-        // String、Integer、Long、byte[] 等高频类型走 getObject 快速路径。
-        // JDBC Types 常量的数值不是类型分类；这个判断只是性能优化，其余类型仍以 getObject 兜底。
-        if (jdbcType < Types.DATE) {
-            return rs.getObject(column);
-        }
-
-        Object value = rs.getObject(column);
-        switch (jdbcType) {
-            case Types.BLOB:
-                return value instanceof Blob ? handleBlob((Blob) value) : value;
-            case Types.CLOB:
-            case Types.NCLOB:
-                return value instanceof Clob ? handleClob((Clob) value) : value;
-            default:
-                return value;
-        }
-    }
-
     protected AifeiRow<?> newRow(Class<? extends AifeiRow<?>> rowType) {
         // 类型为 Row 时避免使用反射
         return rowType == Row.class ? new Row() : InstanceUtil.get(rowType);
@@ -124,48 +78,5 @@ public class RowFactory implements Serializable {
             labelNames[i] = rsmd.getColumnLabel(i);
             types[i] = rsmd.getColumnType(i);
         }
-    }
-
-    protected byte[] handleBlob(Blob blob) throws SQLException {
-        if (blob == null) {
-            return null;
-        }
-
-        long length = blob.length();
-        if (length == 0) {
-            return new byte[0];
-        }
-        if (length > Integer.MAX_VALUE) {
-            throw new SQLException("Blob is too large to convert to byte[].");
-        }
-
-        try (InputStream is = blob.getBinaryStream()) {
-            if (is == null) {
-                return null;
-            }
-            byte[] data = new byte[(int) length];     // byte[] data = new byte[is.available()];
-            int offset = 0;
-            while (offset < data.length) {
-                int read = is.read(data, offset, data.length - offset);
-                if (read <= 0) {
-                    break;
-                }
-                offset += read;
-            }
-            return offset == data.length ? data : Arrays.copyOf(data, offset);
-        } catch (IOException e) {
-            throw new SQLException("Failed to read Blob data.", e);
-        }
-    }
-
-    protected String handleClob(Clob clob) throws SQLException {
-        if (clob == null) {
-            return null;
-        }
-        long length = clob.length();
-        if (length > Integer.MAX_VALUE) {
-            throw new SQLException("Clob is too large to convert to String.");
-        }
-        return clob.getSubString(1, (int) length);
     }
 }
