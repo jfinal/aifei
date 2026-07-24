@@ -240,17 +240,31 @@ public class TypeConverter implements Serializable {
             return (LocalDate) ld;
         } else if (ld == null) {
             return null;
-        } else if (ld instanceof java.sql.Date) {
-            return ((java.sql.Date) ld).toLocalDate();
-        } else if (ld instanceof Timestamp) {
-            return ((Timestamp) ld).toLocalDateTime().toLocalDate();
-        } else if (ld instanceof java.sql.Time) {
-            throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDate without a date.");
-        } else if (ld instanceof java.util.Date) {
-            return TimeUtil.toLocalDate((java.util.Date) ld);
-        } else {
-            return toLocalDateTime(ld).toLocalDate();
         }
+
+        if (ld instanceof java.sql.Date) {
+            return ((java.sql.Date) ld).toLocalDate();
+        }
+        if (ld instanceof Timestamp) {
+            return ((Timestamp) ld).toLocalDateTime().toLocalDate();
+        }
+        if (ld instanceof java.sql.Time) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Time to LocalDate without a date.");
+        }
+        if (ld instanceof java.util.Date) {
+            return TimeUtil.toLocalDate((java.util.Date) ld);
+        }
+        if (ld instanceof LocalDateTime) {
+            return ((LocalDateTime) ld).toLocalDate();
+        }
+        if (ld instanceof LocalTime) {
+            throw new IllegalArgumentException("Cannot convert LocalTime to LocalDate without a date.");
+        }
+        if (ld instanceof String) {
+            return TimeUtil.parseLocalDateTime((String) ld).toLocalDate();
+        }
+
+        throw new IllegalArgumentException("Cannot convert type " + ld.getClass().getName() + " to LocalDate.");
     }
 
     public Timestamp toTimestamp(Object ts) {
@@ -258,15 +272,21 @@ public class TypeConverter implements Serializable {
             return (Timestamp) ts;
         } else if (ts == null) {
             return null;
-        } else if (ts instanceof java.sql.Time) {
+        }
+
+        if (ts instanceof java.sql.Time) {
             throw new IllegalArgumentException("Cannot convert java.sql.Time to Timestamp without a date.");
-        } else if (ts instanceof java.util.Date) {
+        }
+        if (ts instanceof java.util.Date) {
             return new Timestamp(((java.util.Date) ts).getTime());
-        } else if (ts instanceof LocalDateTime) {
+        }
+        if (ts instanceof LocalDateTime) {
             return Timestamp.valueOf((LocalDateTime) ts);
-        } else if (ts instanceof LocalDate) {
+        }
+        if (ts instanceof LocalDate) {
             return Timestamp.valueOf(((LocalDate) ts).atStartOfDay());
-        } else if (ts instanceof Long) {
+        }
+        if (ts instanceof Long) {
             return new Timestamp((Long) ts);
         }
 
