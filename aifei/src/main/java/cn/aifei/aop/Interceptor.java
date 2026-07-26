@@ -20,6 +20,5 @@ package cn.aifei.aop;
  * Interceptor.
  */
 public interface Interceptor {
-    void intercept(Invocation inv) throws Throwable;
+    void intercept(Invocation inv) throws Exception;
 }
-

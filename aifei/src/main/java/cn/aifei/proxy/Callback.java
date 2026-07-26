@@ -17,11 +17,12 @@
 package cn.aifei.proxy;
 
 /**
- * Callback。将 cglib、javassist、byte buddy 等等第三方 aop 实现适配到 Invocation，提供给开发者一个统一的使用界面。
+ * Callback。代理实现交给 Invocation 的目标方法回调。
+ *
+ * <p>具体代理实现负责将第三方代理 API 抛出的 Throwable 归一化为 Exception，
+ * Error 保持原样传播。
  */
 @FunctionalInterface
 public interface Callback {
-	Object call(Object[] args) throws Throwable;
+    Object call(Object[] args) throws Exception;
 }
-
-

@@ -25,12 +25,10 @@ public abstract class PrototypeInterceptor implements Interceptor {
 
     InstanceFactory instanceFactory = new InstanceFactory();
 
-    final public void intercept(Invocation inv) throws Throwable {
+    final public void intercept(Invocation inv) throws Exception {
         instanceFactory.get(getClass()).doIntercept(inv);
     }
 
-    abstract public void doIntercept(Invocation inv) throws Throwable;
+    abstract public void doIntercept(Invocation inv) throws Exception;
 }
-
-
 

@@ -36,9 +36,9 @@ class CglibCallback implements MethodInterceptor {
     static final InterceptorKit interKit = InterceptorKit.get();
     static final ComputeCache<Method, Interceptor[]> cache = new ComputeCache<>(512);
 
-    public Object intercept(Object target, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+    public Object intercept(Object target, Method method, Object[] args, MethodProxy methodProxy) throws Exception {
         if (excludedMethodName.contains(method.getName())) {
-            return methodProxy.invokeSuper(target, args);
+            return invokeSuper(methodProxy, target, args);
         }
 
         Interceptor[] inters = cache.computeIfAbsent(method, m -> {
@@ -52,15 +52,27 @@ class CglibCallback implements MethodInterceptor {
         });
 
         if (inters.length == 0) {
-            return methodProxy.invokeSuper(target, args);
+            return invokeSuper(methodProxy, target, args);
         }
 
         Invocation invocation = new Invocation(target, method, args, inters, x -> {
-            return methodProxy.invokeSuper(target, x);
+            return invokeSuper(methodProxy, target, x);
         });
         invocation.invoke();
 
         return invocation.getReturnValue();
+    }
+
+    private Object invokeSuper(MethodProxy methodProxy, Object target, Object[] args) throws Exception {
+        try {
+            return methodProxy.invokeSuper(target, args);
+        } catch (Exception e) {
+            throw e;
+        } catch (Error e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static Set<String> buildExcludedMethodName() {
@@ -75,6 +87,5 @@ class CglibCallback implements MethodInterceptor {
         return excludedMethodName;
     }
 }
-
 
 

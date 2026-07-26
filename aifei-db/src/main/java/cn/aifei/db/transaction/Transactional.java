@@ -43,20 +43,11 @@ import cn.aifei.db.core.Db;
 public class Transactional implements Interceptor {
 
     @Override
-    public void intercept(Invocation inv) throws Throwable {
-        Db.transaction(tx -> proceed(inv));
-    }
-
-    private Object proceed(Invocation inv) throws Exception {
-        try {
+    public void intercept(Invocation inv) throws Exception {
+        Db.transaction(tx -> {
             inv.invoke();
-            // 若返回 RollbackDecision 实例，则需参与事务回滚
-            return inv.getReturnValue();
-        } catch (Exception e) {
-            throw e;
-        } catch (Throwable e) {
-            throw new Exception(e);
-        }
+            return inv.getReturnValue();    // 若返回 RollbackDecision 实例，则会参与事务回滚
+        });
     }
 }
 
