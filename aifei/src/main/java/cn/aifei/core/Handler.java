@@ -23,7 +23,6 @@ public abstract class Handler<I extends Input, O extends Output> {
 
     protected Handler<I, O> next;
 
-    public abstract void handle(String path, I input, O output) throws Throwable;
+    public abstract void handle(String path, I input, O output) throws Exception;
 }
-
 
