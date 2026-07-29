@@ -72,8 +72,10 @@ public class Invocation {
     public void invoke() throws Exception {
         if (index < interceptors.length) {
             interceptors[index++].intercept(this);
+            return;
+        }
 
-        } else if (index++ == interceptors.length) {    // index++ ensure invoke action only one time
+        if (index++ == interceptors.length) {    // index++ ensure invoke action only one time
             if (action != null) {
                 // 拦截器调用之后获取 args，便于拦截器中处理并存入 Input 的数据能在 Argument.getValue(in, out) 中被使用
                 Argument<Input, Output, ?>[] arguments = action.getArguments();
@@ -91,6 +93,7 @@ public class Invocation {
                         throw new ArgumentException(arguments[i], e);
                     }
                 }
+
                 // Invoke the action
                 try {
                     returnValue = method.invoke(target, args);
