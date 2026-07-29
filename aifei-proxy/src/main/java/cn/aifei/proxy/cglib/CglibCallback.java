@@ -25,6 +25,7 @@ import net.sf.cglib.proxy.MethodProxy;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * CglibCallback.
@@ -32,24 +33,29 @@ import java.util.Set;
 class CglibCallback implements MethodInterceptor {
 
     static final Set<String> excludedMethodName = buildExcludedMethodName();
-
     static final InterceptorKit interKit = InterceptorKit.get();
-    static final ComputeCache<Method, Interceptor[]> cache = new ComputeCache<>(512);
+    static final ComputeCache<Class<?>, CglibCallback> callbackCache = new ComputeCache<>(512);
+
+    final Class<?> targetClass;
+    final ConcurrentHashMap<Method, Interceptor[]> methodCache = new ConcurrentHashMap<>();
+
+    private CglibCallback(Class<?> targetClass) {
+        this.targetClass = targetClass;
+    }
+
+    static CglibCallback get(Class<?> targetClass) {
+        return callbackCache.computeIfAbsent(targetClass, CglibCallback::new);
+    }
 
     public Object intercept(Object target, Method method, Object[] args, MethodProxy methodProxy) throws Exception {
         if (excludedMethodName.contains(method.getName())) {
             return invokeSuper(methodProxy, target, args);
         }
 
-        Interceptor[] inters = cache.computeIfAbsent(method, m -> {
-            // Class<?> targetClass = target.getClass();
-            // if (targetClass.getName().contains("$$Enhance")) {
-            //     targetClass = targetClass.getSuperclass();
-            // }
-
-            Class<?> targetClass = target.getClass().getSuperclass();
-            return interKit.buildServiceMethodInterceptor(targetClass, m);
-        });
+        Interceptor[] inters = methodCache.get(method);
+        if (inters == null) {
+            inters = cacheInterceptors(method);
+        }
 
         if (inters.length == 0) {
             return invokeSuper(methodProxy, target, args);
@@ -61,6 +67,17 @@ class CglibCallback implements MethodInterceptor {
         invocation.invoke();
 
         return invocation.getReturnValue();
+    }
+
+    private Interceptor[] cacheInterceptors(Method method) {
+        synchronized (methodCache) {
+            Interceptor[] inters = methodCache.get(method);
+            if (inters == null) {
+                inters = interKit.buildServiceMethodInterceptor(targetClass, method);
+                methodCache.put(method, inters);
+            }
+            return inters;
+        }
     }
 
     private Object invokeSuper(MethodProxy methodProxy, Object target, Object[] args) throws Exception {
@@ -87,5 +104,4 @@ class CglibCallback implements MethodInterceptor {
         return excludedMethodName;
     }
 }
-
 

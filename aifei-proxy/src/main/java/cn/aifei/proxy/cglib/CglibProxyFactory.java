@@ -36,9 +36,7 @@ public class CglibProxyFactory implements ProxyFactory {
         if (target.getName().contains("$$Enhance")) {
             target = (Class<T>) target.getSuperclass();
         }
-        return (T) net.sf.cglib.proxy.Enhancer.create(target, new CglibCallback());
+        return (T) net.sf.cglib.proxy.Enhancer.create(target, CglibCallback.get(target));
     }
 }
-
-
 

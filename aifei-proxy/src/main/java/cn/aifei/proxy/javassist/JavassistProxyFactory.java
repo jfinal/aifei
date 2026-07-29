@@ -38,7 +38,6 @@ import java.util.Set;
 public class JavassistProxyFactory implements ProxyFactory {
 
     InstanceFactory instanceFactory = new InstanceFactory();
-    JavassistCallback callback = new JavassistCallback();
     JavassistMethodFilter methodFilter = new JavassistMethodFilter();
     ComputeCache<Class<?>, Class<?>> cache = new ComputeCache<>(512);
 
@@ -56,7 +55,7 @@ public class JavassistProxyFactory implements ProxyFactory {
             }
 
             T ret = instanceFactory.get(clazz);
-            ((ProxyObject) ret).setHandler(callback);
+            ((ProxyObject) ret).setHandler(JavassistCallback.get(target));
             return ret;
 
         } catch (ReflectiveOperationException e) {
@@ -100,8 +99,4 @@ public class JavassistProxyFactory implements ProxyFactory {
         }
     }
 }
-
-
-
-
 

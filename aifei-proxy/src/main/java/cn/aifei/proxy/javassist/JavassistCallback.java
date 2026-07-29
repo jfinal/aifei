@@ -19,6 +19,7 @@ package cn.aifei.proxy.javassist;
 import cn.aifei.aop.Interceptor;
 import cn.aifei.aop.InterceptorKit;
 import cn.aifei.aop.Invocation;
+import cn.aifei.util.ComputeCache;
 import javassist.util.proxy.MethodHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -30,15 +31,24 @@ import java.util.concurrent.ConcurrentHashMap;
 class JavassistCallback implements MethodHandler {
 
     static final InterceptorKit interKit = InterceptorKit.get();
-    static final ConcurrentHashMap<Method, Interceptor[]> cache = new ConcurrentHashMap<>();
+    static final ComputeCache<Class<?>, JavassistCallback> callbackCache = new ComputeCache<>(512);
+
+    final Class<?> targetClass;
+    final ConcurrentHashMap<Method, Interceptor[]> methodCache = new ConcurrentHashMap<>();
+
+    private JavassistCallback(Class<?> targetClass) {
+        this.targetClass = targetClass;
+    }
+
+    static JavassistCallback get(Class<?> targetClass) {
+        return callbackCache.computeIfAbsent(targetClass, JavassistCallback::new);
+    }
 
     @Override
     public Object invoke(Object target, Method method, Method methodProxy, Object[] args) throws Exception {
-        Interceptor[] inters = cache.get(method);
+        Interceptor[] inters = methodCache.get(method);
         if (inters == null) {
-            Class<?> targetClass = target.getClass().getSuperclass();
-            inters = interKit.buildServiceMethodInterceptor(targetClass, method);
-            cache.put(method, inters);
+            inters = cacheInterceptors(method);
         }
 
         if (inters.length == 0) {
@@ -51,6 +61,17 @@ class JavassistCallback implements MethodHandler {
         invocation.invoke();
 
         return invocation.getReturnValue();
+    }
+
+    private Interceptor[] cacheInterceptors(Method method) {
+        synchronized (methodCache) {
+            Interceptor[] inters = methodCache.get(method);
+            if (inters == null) {
+                inters = interKit.buildServiceMethodInterceptor(targetClass, method);
+                methodCache.put(method, inters);
+            }
+            return inters;
+        }
     }
 
     /**
@@ -72,4 +93,3 @@ class JavassistCallback implements MethodHandler {
         }
     }
 }
-
