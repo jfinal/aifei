@@ -34,7 +34,7 @@ class JavassistCallback implements MethodHandler {
     static final ComputeCache<Class<?>, JavassistCallback> callbackCache = new ComputeCache<>(512);
 
     final Class<?> targetClass;
-    final ConcurrentHashMap<Method, Interceptor[]> methodCache = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<Method, Interceptor[]> interceptorCache = new ConcurrentHashMap<>();
 
     private JavassistCallback(Class<?> targetClass) {
         this.targetClass = targetClass;
@@ -46,7 +46,7 @@ class JavassistCallback implements MethodHandler {
 
     @Override
     public Object invoke(Object target, Method method, Method methodProxy, Object[] args) throws Exception {
-        Interceptor[] inters = methodCache.get(method);
+        Interceptor[] inters = interceptorCache.get(method);
         if (inters == null) {
             inters = cacheInterceptors(method);
         }
@@ -64,11 +64,11 @@ class JavassistCallback implements MethodHandler {
     }
 
     private Interceptor[] cacheInterceptors(Method method) {
-        synchronized (methodCache) {
-            Interceptor[] inters = methodCache.get(method);
+        synchronized (interceptorCache) {
+            Interceptor[] inters = interceptorCache.get(method);
             if (inters == null) {
                 inters = interKit.buildServiceMethodInterceptor(targetClass, method);
-                methodCache.put(method, inters);
+                interceptorCache.put(method, inters);
             }
             return inters;
         }

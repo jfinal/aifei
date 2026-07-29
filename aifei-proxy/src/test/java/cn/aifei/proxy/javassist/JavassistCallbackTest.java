@@ -33,7 +33,7 @@ public class JavassistCallbackTest {
         assertNotSame(first, second);
         assertSame(FirstTarget.class, first.targetClass);
         assertSame(SecondTarget.class, second.targetClass);
-        assertNotSame(first.methodCache, second.methodCache);
+        assertNotSame(first.interceptorCache, second.interceptorCache);
     }
 
     @Test

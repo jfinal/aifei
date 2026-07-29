@@ -32,12 +32,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 class CglibCallback implements MethodInterceptor {
 
-    static final Set<String> excludedMethodName = buildExcludedMethodName();
     static final InterceptorKit interKit = InterceptorKit.get();
+    static final Set<String> excludedMethodName = buildExcludedMethodName();
     static final ComputeCache<Class<?>, CglibCallback> callbackCache = new ComputeCache<>(512);
 
     final Class<?> targetClass;
-    final ConcurrentHashMap<Method, Interceptor[]> methodCache = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<Method, Interceptor[]> interceptorCache = new ConcurrentHashMap<>();
 
     private CglibCallback(Class<?> targetClass) {
         this.targetClass = targetClass;
@@ -52,7 +52,7 @@ class CglibCallback implements MethodInterceptor {
             return invokeSuper(methodProxy, target, args);
         }
 
-        Interceptor[] inters = methodCache.get(method);
+        Interceptor[] inters = interceptorCache.get(method);
         if (inters == null) {
             inters = cacheInterceptors(method);
         }
@@ -70,11 +70,11 @@ class CglibCallback implements MethodInterceptor {
     }
 
     private Interceptor[] cacheInterceptors(Method method) {
-        synchronized (methodCache) {
-            Interceptor[] inters = methodCache.get(method);
+        synchronized (interceptorCache) {
+            Interceptor[] inters = interceptorCache.get(method);
             if (inters == null) {
                 inters = interKit.buildServiceMethodInterceptor(targetClass, method);
-                methodCache.put(method, inters);
+                interceptorCache.put(method, inters);
             }
             return inters;
         }
@@ -104,4 +104,3 @@ class CglibCallback implements MethodInterceptor {
         return excludedMethodName;
     }
 }
-
