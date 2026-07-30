@@ -45,8 +45,8 @@ public class TransactionExecutor {
         try {
             connection = config.getDataSource().getConnection();
             transaction = new Transaction<>(connection, isolation.level);
-            transactionKit.setTransaction(transaction);
             transaction.begin();
+            transactionKit.setTransaction(transaction);
 
             R ret = atom.run(transaction);
             // 若返回值类型实现了 RollbackDecision 接口，则根据其 shouldRollback() 返回值决定是否回滚事务
@@ -87,9 +87,21 @@ public class TransactionExecutor {
             // 没有异常回调时向上抛出异常
             throw e instanceof RuntimeException ? (RuntimeException) e : new AifeiDbException(e);
 
+        } catch (Error e) {
+            // Error 也必须回滚事务，但不得包装或转换为业务异常
+            if (transaction != null) {
+                try {
+                    transaction.rollbackImmediately();
+                } catch (Exception ex) {
+                    log.error(ex.getMessage(), ex);     // 未抛出的异常做日志
+                }
+            }
+            throw e;
+
         } finally {
             boolean closeOnException = true;
             try {
+                // 无论提交或回滚是否成功，都尝试恢复连接状态，避免状态泄漏给后续使用者
                 if (transaction != null) {
                     transaction.end();
                 }
@@ -145,12 +157,13 @@ public class TransactionExecutor {
             // 向上抛出：1、否则上层可能误以为事务已提交业务已成功。2、避免执行后续未执行的代码。3、上层做日志。
             throw e instanceof RuntimeException ? (RuntimeException) e : new AifeiDbException(e);
 
+        } catch (Error e) {
+            transaction.rollback();
+            throw e;
+
         } finally {
             // 恢复上一层异常回调函数（即使为 null），确保回调函数执行结果返回给正确的调用者（层级正确）
             transaction.onException(upperLevelOnException);
         }
     }
 }
-
-
-

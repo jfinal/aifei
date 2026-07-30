@@ -48,12 +48,12 @@ public class Transaction<R> {
 
     private final Connection connection;
 
-    private boolean active = true;
+    private boolean active = false;
     private boolean rollbackOnly = false;
 
     private int currentIsolation;
-    private int originalIsolation;
-    private boolean originalAutoCommit;
+    private Integer originalIsolation;
+    private Boolean originalAutoCommit;
 
     // 异常产生之后回调
     private Function<Exception, R> onException;
@@ -93,6 +93,7 @@ public class Transaction<R> {
 
         originalAutoCommit = connection.getAutoCommit();
         connection.setAutoCommit(false);
+        active = true;
     }
 
     /**
@@ -178,10 +179,12 @@ public class Transaction<R> {
      */
     void end() throws SQLException {
         // 恢复为 originalAutoCommit
-        connection.setAutoCommit(originalAutoCommit);
+        if (originalAutoCommit != null) {
+            connection.setAutoCommit(originalAutoCommit);
+        }
 
         // 恢复为 originalIsolation
-        if (originalIsolation != currentIsolation) {
+        if (originalIsolation != null && originalIsolation != currentIsolation) {
             connection.setTransactionIsolation(originalIsolation);
         }
     }
@@ -245,7 +248,3 @@ public class Transaction<R> {
         }
     }
 }
-
-
-
-
