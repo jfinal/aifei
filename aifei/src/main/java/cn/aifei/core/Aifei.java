@@ -171,9 +171,10 @@ public class Aifei {
     }
 
     private static void stopPlugins(Plugins plugins) {
-        for (Plugin plugin : plugins.getPluginList()) {
+        List<Plugin> pluginList = plugins.getPluginList();
+        for (int i = pluginList.size() - 1; i >= 0; i--) {
             try {
-                plugin.stop();
+                pluginList.get(i).stop();
             } catch (Exception e) {
                 Log.get(Aifei.class).error("Stopping plugin error: " + e.getMessage(), e);
             }
