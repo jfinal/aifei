@@ -53,7 +53,7 @@ public class TransactionExecutor {
             if (ret instanceof RollbackDecision && ((RollbackDecision) ret).shouldRollback()) {
                 transaction.rollback();
             }
-            // 内层、外层调用 onBeforeCommit 处理各自的 ret 返回值
+            // 内层、外层调用 onBeforeCommit 校验各自的 ret 返回值
             if (onBeforeCommit != null && transaction.canCommit()) {
                 onBeforeCommit.accept(transaction, ret);
             }
@@ -101,7 +101,7 @@ public class TransactionExecutor {
         } finally {
             boolean closeOnException = true;
             try {
-                // 无论提交或回滚是否成功，都尝试恢复连接状态，避免状态泄漏给后续使用者
+                // 尝试恢复连接状态，避免状态泄漏给后续使用者；回滚失败时会跳过恢复，避免意外提交
                 if (transaction != null) {
                     transaction.end();
                 }
@@ -124,6 +124,12 @@ public class TransactionExecutor {
             } finally {
                 transactionKit.removeTransaction();
             }
+
+            // onCommitSuccess 回调在连接关闭（含关闭失败的情况）与 ThreadLocal 清理之后执行，
+            // 避免回调中的同线程数据库操作误用已提交事务的连接。仅提交成功才会回调，由 Transaction 内部判断
+            if (transaction != null) {
+                transaction.executeOnCommitSuccess();
+            }
         }
     }
 
@@ -139,7 +145,7 @@ public class TransactionExecutor {
             if (ret instanceof RollbackDecision && ((RollbackDecision) ret).shouldRollback()) {
                 transaction.rollback();
             }
-            // 内层、外层调用 onBeforeCommit 处理各自的 ret 返回值
+            // 内层、外层调用 onBeforeCommit 校验各自的 ret 返回值
             if (onBeforeCommit != null && transaction.canCommit()) {
                 onBeforeCommit.accept(transaction, ret);
             }
@@ -151,7 +157,12 @@ public class TransactionExecutor {
             // 此处不 return 回调函数的执行结果，否则上层事务感知不到异常可能会认为业务执行成功（虽然事务会被回滚）
             // 由于后续仍然抛出异常，所以回调函数返回值无意义，但回调函数中可能有代码需要被执行，不必节省这点消耗
             if (transaction.getOnException() != null) {
-                transaction.getOnException().apply(e);  // 注意不要 return，需在后面抛出异常
+                try {
+                    transaction.getOnException().apply(e);  // 注意不要 return，需在后面抛出异常
+                } catch (Exception ex) {
+                    // 回调抛出的 Exception 不得掩盖原始异常，记录日志后继续抛出原始异常（Error 不捕获，仍向外抛出）
+                    log.error(ex.getMessage(), ex);         // 未抛出的异常做日志
+                }
             }
 
             // 向上抛出：1、否则上层可能误以为事务已提交业务已成功。2、避免执行后续未执行的代码。3、上层做日志。

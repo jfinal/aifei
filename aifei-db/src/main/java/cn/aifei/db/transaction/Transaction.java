@@ -50,6 +50,8 @@ public class Transaction<R> {
 
     private boolean active = false;
     private boolean rollbackOnly = false;
+    private boolean committed = false;      // 事务提交成功标记，作为 onCommitSuccess 回调的执行依据
+    private boolean rollbackFailed = false; // 回滚失败标记，end() 据此跳过连接状态恢复，避免隐式提交本应回滚的事务
 
     private int currentIsolation;
     private Integer originalIsolation;
@@ -153,10 +155,7 @@ public class Transaction<R> {
         if (active /* && !rollbackOnly */) {
             connection.commit();
             active = false;                 // 必须后置，提交失败仍需回滚事务
-
-            if (onCommitSuccessList != null) {
-                executeOnCommitSuccess();
-            }
+            committed = true;               // 必须后置，提交成功才允许回调 onCommitSuccess
         }
     }
 
@@ -167,7 +166,9 @@ public class Transaction<R> {
         // active 避免重复回滚确保幂等性，TransactionExecutor 中有两处回滚调用
         if (active) {                       // 回滚事务无需判断 rollbackOnly
             active = false;                 // 必须前置，回滚异常时避免重复回滚
+            rollbackFailed = true;          // 必须前置，rollback 抛出任何异常（含 Error）都保持标记
             connection.rollback();
+            rollbackFailed = false;
         }
     }
 
@@ -178,6 +179,13 @@ public class Transaction<R> {
      * 注意：结束事务 setAutoCommit 必须在 setTransactionIsolation 之前调用
      */
     void end() throws SQLException {
+        // 回滚失败时不得做任何连接状态恢复：事务可能仍未结束，setAutoCommit(true)
+        // 会隐式提交本应回滚的事务，setTransactionIsolation 在事务进行中行为由驱动决定。
+        // 连接随后会被 close，由连接池或驱动决定最终处置
+        if (rollbackFailed) {
+            return;
+        }
+
         // 恢复为 originalAutoCommit
         if (originalAutoCommit != null) {
             connection.setAutoCommit(originalAutoCommit);
@@ -213,7 +221,9 @@ public class Transaction<R> {
      *
      * <p>
      * 典型的应用场景是事务提交成功后在其它线程中更新缓存
-     * 注意：该回调在事务提交成功后才被调用，如果事务提交时抛出异常则不会被调用
+     * 注意：该回调在事务提交成功后才被调用，如果事务提交时抛出异常则不会被调用。
+     *      该回调在连接状态恢复、连接关闭（含恢复或关闭失败的情况）与 ThreadLocal
+     *      清理之后执行，回调中的数据库操作不再处于当前事务之中
      *
      * <p>
      * 警告：回调发生异常不会向外抛出，如需处理异常情况需在回调中自行 try catch
@@ -228,7 +238,9 @@ public class Transaction<R> {
     }
 
     /**
-     * 事务提交成功之后回调 onCommitSuccess
+     * 事务提交成功之后回调 onCommitSuccess。仅供框架内部使用，
+     * 由 TransactionExecutor 在连接关闭（含关闭失败的情况）与 ThreadLocal 清理之后调用，
+     * 避免回调中的同线程数据库操作误用已提交事务的连接
      *
      * <p>
      * 注意，此回调不向外抛出异常
@@ -237,8 +249,13 @@ public class Transaction<R> {
      * 3：此回调异常不向外传播，保障事务提交成功后的主线流程不受影响
      * 4：此回调通常用于在事务提交后进行异步操作，例如更新缓存、发送通知等等
      */
-    private void executeOnCommitSuccess() {
-        // 内层事务中的 onCommitSuccess 优先执行
+    void executeOnCommitSuccess() {
+        // 仅事务提交成功才回调，回滚事务以及异常场景不发生回调
+        if (!committed || onCommitSuccessList == null) {
+            return;
+        }
+
+        // 回调按注册顺序的逆序执行（后注册的先执行）
         for (int i = onCommitSuccessList.size() - 1; i >= 0; i--) {
             try {
                 onCommitSuccessList.get(i).run();

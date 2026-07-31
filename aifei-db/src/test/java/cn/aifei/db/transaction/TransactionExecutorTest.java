@@ -33,6 +33,9 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -184,9 +187,10 @@ public class TransactionExecutorTest {
 
         assertFalse(callbackInvoked.get());
         assertEquals(1, state.rollbackCount);
-        assertEquals(1, state.restoreAutoCommitCount);
-        assertEquals(1, state.implicitCommitCount);
-        assertTrue(state.autoCommit);
+        // 回滚失败不得恢复 autoCommit，避免 setAutoCommit(true) 隐式提交本应回滚的事务
+        assertEquals(0, state.restoreAutoCommitCount);
+        assertEquals(0, state.implicitCommitCount);
+        assertFalse(state.autoCommit);
         assertEquals(1, state.closeCount);
         assertFalse(config.getTransactionKit().isInTransaction());
     }
@@ -211,10 +215,39 @@ public class TransactionExecutorTest {
         assertEquals("fallback", result);
         assertTrue(callbackInvoked.get());
         assertEquals(1, state.rollbackCount);
-        assertEquals(1, state.restoreAutoCommitCount);
-        assertEquals(1, state.implicitCommitCount);
-        assertTrue(state.autoCommit);
+        // 回滚失败不得恢复 autoCommit，避免 setAutoCommit(true) 隐式提交本应回滚的事务
+        assertEquals(0, state.restoreAutoCommitCount);
+        assertEquals(0, state.implicitCommitCount);
+        assertFalse(state.autoCommit);
         assertEquals(1, state.closeCount);
+        assertFalse(config.getTransactionKit().isInTransaction());
+    }
+
+    @Test
+    public void rollbackFailureSkipsAllConnectionStateRestoration() {
+        ConnectionState state = new ConnectionState();
+        state.isolation = Connection.TRANSACTION_READ_COMMITTED;
+        SQLException rollbackFailure = new SQLException("rollback");
+        state.rollbackFailure = rollbackFailure;
+        DbConfig config = createConfig(state);
+
+        try {
+            new TransactionExecutor().execute(config, Isolation.REPEATABLE_READ, tx -> {
+                tx.rollback();
+                return "unused";
+            });
+            fail();
+        } catch (AifeiDbException actual) {
+            assertSame(rollbackFailure, actual.getCause());
+        }
+
+        assertEquals(1, state.rollbackCount);
+        assertEquals(0, state.restoreAutoCommitCount);
+        assertFalse(state.autoCommit);
+        assertEquals(1, state.setTransactionIsolationCount);   // 仅 begin() 设置，end() 不得恢复
+        assertEquals(Connection.TRANSACTION_REPEATABLE_READ, state.isolation);
+        assertEquals(1, state.closeCount);
+        assertFalse(config.getTransactionKit().isInTransaction());
     }
 
     @Test
@@ -238,6 +271,224 @@ public class TransactionExecutorTest {
         assertEquals(0, state.implicitCommitCount);
         assertEquals(1, state.closeCount);
         assertTrue(callbackInvoked.get());
+    }
+
+    @Test
+    public void commitSuccessCallbackRunsAfterConnectionClosedAndThreadLocalCleared() {
+        ConnectionState state = new ConnectionState();
+        DbConfig config = createConfig(state);
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+
+        String result = new TransactionExecutor().execute(config, Isolation.REPEATABLE_READ, tx -> {
+            tx.onCommitSuccess(() -> {
+                callbackInvoked.set(true);
+                assertEquals(1, state.closeCount);                          // 连接已关闭
+                assertTrue(state.autoCommit);                               // autoCommit 已恢复
+                assertFalse(config.getTransactionKit().isInTransaction());  // ThreadLocal 已清理
+            });
+            return "result";
+        });
+
+        assertEquals("result", result);
+        assertTrue(callbackInvoked.get());
+        assertEquals(1, state.commitCount);
+        assertEquals(0, state.rollbackCount);
+    }
+
+    @Test
+    public void commitSuccessCallbackCanStartFreshTransaction() {
+        ConnectionState state = new ConnectionState();
+        DbConfig config = createConfig(state);
+        TransactionExecutor executor = new TransactionExecutor();
+        AtomicBoolean innerInvoked = new AtomicBoolean();
+
+        String result = executor.execute(config, Isolation.REPEATABLE_READ, tx -> {
+            tx.onCommitSuccess(() -> {
+                // 回调中开启的事务是独立的顶层事务，不复用已提交事务的连接
+                String inner = executor.execute(config, Isolation.REPEATABLE_READ, innerTx -> {
+                    innerInvoked.set(true);
+                    assertTrue(config.getTransactionKit().isInTransaction());
+                    return "inner";
+                });
+                assertEquals("inner", inner);
+            });
+            return "outer";
+        });
+
+        assertEquals("outer", result);
+        assertTrue(innerInvoked.get());
+        assertEquals(2, state.commitCount);     // 外层事务与回调中的新事务各自提交
+        assertEquals(2, state.closeCount);
+        assertFalse(config.getTransactionKit().isInTransaction());
+    }
+
+    @Test
+    public void commitSuccessCallbackRunsAfterConnectionCloseFailureAndThreadLocalCleared() {
+        ConnectionState state = new ConnectionState();
+        SQLException closeFailure = new SQLException("close");
+        state.closeFailure = closeFailure;
+        DbConfig config = createConfig(state);
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+
+        String result = new TransactionExecutor().execute(config, Isolation.REPEATABLE_READ, tx -> {
+            tx.onCommitSuccess(() -> {
+                callbackInvoked.set(true);
+                assertEquals(1, state.closeCount);                          // 已尝试关闭连接
+                assertFalse(config.getTransactionKit().isInTransaction());  // ThreadLocal 已清理
+            });
+            return "result";
+        });
+
+        assertEquals("result", result);
+        assertTrue(callbackInvoked.get());
+        assertEquals(1, state.commitCount);
+        assertEquals(1, state.closeCount);
+        assertFalse(config.getTransactionKit().isInTransaction());
+    }
+
+    @Test
+    public void rollbackDoesNotTriggerCommitSuccessCallback() {
+        ConnectionState state = new ConnectionState();
+        DbConfig config = createConfig(state);
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+
+        String result = new TransactionExecutor().execute(config, Isolation.REPEATABLE_READ, tx -> {
+            tx.onCommitSuccess(() -> callbackInvoked.set(true));
+            tx.rollback();
+            return "rolledBack";
+        });
+
+        assertEquals("rolledBack", result);
+        assertFalse(callbackInvoked.get());
+        assertEquals(0, state.commitCount);
+        assertEquals(1, state.rollbackCount);
+    }
+
+    @Test
+    public void commitFailureDoesNotTriggerCommitSuccessCallback() {
+        ConnectionState state = new ConnectionState();
+        SQLException commitFailure = new SQLException("commit");
+        state.commitFailure = commitFailure;
+        DbConfig config = createConfig(state);
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+
+        try {
+            new TransactionExecutor().execute(config, Isolation.REPEATABLE_READ, tx -> {
+                tx.onCommitSuccess(() -> callbackInvoked.set(true));
+                return "unused";
+            });
+            fail();
+        } catch (AifeiDbException actual) {
+            assertSame(commitFailure, actual.getCause());
+        }
+
+        assertFalse(callbackInvoked.get());
+        assertEquals(1, state.commitCount);     // commit 被调用但失败
+        assertEquals(1, state.rollbackCount);   // 提交失败后回滚事务
+        assertEquals(1, state.closeCount);
+        assertFalse(config.getTransactionKit().isInTransaction());
+    }
+
+    @Test
+    public void businessExceptionDoesNotTriggerCommitSuccessCallback() {
+        ConnectionState state = new ConnectionState();
+        DbConfig config = createConfig(state);
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+        Exception atomFailure = new Exception("atom");
+
+        try {
+            new TransactionExecutor().execute(config, Isolation.REPEATABLE_READ, tx -> {
+                tx.onCommitSuccess(() -> callbackInvoked.set(true));
+                throw atomFailure;
+            });
+            fail();
+        } catch (AifeiDbException actual) {
+            assertSame(atomFailure, actual.getCause());
+        }
+
+        assertFalse(callbackInvoked.get());
+        assertEquals(0, state.commitCount);
+        assertEquals(1, state.rollbackCount);
+    }
+
+    @Test
+    public void failingCommitSuccessCallbackDoesNotAffectResultOrOtherCallbacks() {
+        ConnectionState state = new ConnectionState();
+        DbConfig config = createConfig(state);
+        List<String> invoked = new ArrayList<>();
+
+        String result = new TransactionExecutor().execute(config, Isolation.REPEATABLE_READ, tx -> {
+            tx.onCommitSuccess(() -> invoked.add("first"));
+            tx.onCommitSuccess(() -> {                          // 后注册的先执行
+                invoked.add("second");
+                throw new RuntimeException("callback");
+            });
+            return "result";
+        });
+
+        assertEquals("result", result);                         // 回调异常不影响事务返回值
+        assertEquals(1, state.commitCount);
+        assertEquals(Arrays.asList("second", "first"), invoked);  // 逆序执行，且其它回调仍被执行
+    }
+
+    @Test
+    public void appliedThenFailedNestedIsolationUpgradeIsRestored() {
+        ConnectionState state = new ConnectionState();
+        // 模拟驱动先应用新的隔离级别再抛出异常
+        state.applyIsolationBeforeThrow = true;
+        state.setTransactionIsolationFailureValue = Connection.TRANSACTION_SERIALIZABLE;
+        SQLException isolationFailure = new SQLException("setTransactionIsolation");
+        state.setTransactionIsolationFailure = isolationFailure;
+        DbConfig config = createConfig(state);
+        TransactionExecutor executor = new TransactionExecutor();
+
+        String result = executor.execute(config, Isolation.REPEATABLE_READ, tx -> {
+            try {
+                executor.execute(config, Isolation.SERIALIZABLE, inner -> "unused");
+                fail();
+            } catch (AifeiDbException expected) {
+                assertSame(isolationFailure, expected.getCause());
+            }
+            return "continued";
+        });
+
+        assertEquals("continued", result);
+        assertEquals(2, state.setTransactionIsolationCount);                // 嵌套尝试 + end() 恢复
+        assertEquals(Connection.TRANSACTION_REPEATABLE_READ, state.isolation);  // 已恢复原始隔离级别
+        assertEquals(1, state.rollbackCount);
+        assertEquals(1, state.closeCount);
+        assertFalse(config.getTransactionKit().isInTransaction());
+    }
+
+    @Test
+    public void nestedExceptionCallbackFailureDoesNotMaskOriginalException() {
+        ConnectionState state = new ConnectionState();
+        DbConfig config = createConfig(state);
+        TransactionExecutor executor = new TransactionExecutor();
+        Exception original = new Exception("original");
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+
+        try {
+            executor.execute(config, Isolation.REPEATABLE_READ, tx -> {
+                executor.execute(config, Isolation.REPEATABLE_READ, inner -> {
+                    inner.onException(e -> {
+                        callbackInvoked.set(true);
+                        throw new RuntimeException("callback");     // 回调自身抛异常
+                    });
+                    throw original;
+                });
+                fail();
+                return null;
+            });
+            fail();
+        } catch (AifeiDbException actual) {
+            assertSame(original, actual.getCause());    // 原始异常未被回调异常掩盖
+        }
+
+        assertTrue(callbackInvoked.get());
+        assertEquals(1, state.rollbackCount);
+        assertEquals(0, state.commitCount);
+        assertFalse(config.getTransactionKit().isInTransaction());
     }
 
     private static DbConfig createConfig(ConnectionState state) {
@@ -274,9 +525,15 @@ public class TransactionExecutorTest {
         int implicitCommitCount;
         int closeCount;
         Throwable rollbackFailure;
+        Throwable commitFailure;
+        Throwable closeFailure;
         Throwable getTransactionIsolationFailure;
         Throwable setAutoCommitFailure;
         boolean setAutoCommitFailureThrown;
+        Throwable setTransactionIsolationFailure;
+        Integer setTransactionIsolationFailureValue;    // 仅对传入该值的调用抛出异常
+        boolean setTransactionIsolationFailureThrown;   // 异常只抛出一次，避免影响 end() 中的恢复
+        boolean applyIsolationBeforeThrow;              // 模拟驱动先应用隔离级别再抛出异常
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -289,7 +546,17 @@ public class TransactionExecutorTest {
             }
             if ("setTransactionIsolation".equals(name)) {
                 setTransactionIsolationCount++;
-                isolation = (Integer) args[0];
+                int newIsolation = (Integer) args[0];
+                if (setTransactionIsolationFailure != null && !setTransactionIsolationFailureThrown
+                        && setTransactionIsolationFailureValue != null
+                        && setTransactionIsolationFailureValue == newIsolation) {
+                    setTransactionIsolationFailureThrown = true;
+                    if (applyIsolationBeforeThrow) {
+                        isolation = newIsolation;   // 驱动先应用隔离级别再抛出异常
+                    }
+                    throw setTransactionIsolationFailure;
+                }
+                isolation = newIsolation;
                 return null;
             }
             if ("getAutoCommit".equals(name)) {
@@ -298,6 +565,9 @@ public class TransactionExecutorTest {
             if ("setAutoCommit".equals(name)) {
                 setAutoCommitCount++;
                 boolean newValue = (Boolean) args[0];
+                if (autoCommit && !newValue) {
+                    transactionResolved = false;
+                }
                 if (!autoCommit && newValue) {
                     restoreAutoCommitCount++;
                     if (!transactionResolved) {
@@ -321,11 +591,17 @@ public class TransactionExecutorTest {
             }
             if ("commit".equals(name)) {
                 commitCount++;
+                if (commitFailure != null) {
+                    throw commitFailure;
+                }
                 transactionResolved = true;
                 return null;
             }
             if ("close".equals(name)) {
                 closeCount++;
+                if (closeFailure != null) {
+                    throw closeFailure;
+                }
                 return null;
             }
             if ("isWrapperFor".equals(name)) {

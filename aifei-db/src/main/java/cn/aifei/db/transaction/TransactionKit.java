@@ -33,7 +33,7 @@ public class TransactionKit {
     // 异常产生之后回调
     private Function<Exception, ?> onException;
 
-    // 事务提交之前回调。该函数用于在提交前决定是否要回滚事务，以及处理返回值
+    // 事务提交之前回调。该函数用于在提交前校验返回值，以及决定是否要回滚事务
     private BiConsumer<Transaction<?>, Object> onBeforeCommit;
 
     /**
