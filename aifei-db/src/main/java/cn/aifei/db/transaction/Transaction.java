@@ -48,10 +48,9 @@ public class Transaction<R> {
 
     private final Connection connection;
 
-    private boolean active = false;
+    // rollbackOnly 是独立于事务完成方向的决策标记，与 JDBC 事务执行状态正交，不能合并到 state 中
     private boolean rollbackOnly = false;
-    private boolean committed = false;      // 事务提交成功标记，作为 onCommitSuccess 回调的执行依据
-    private boolean rollbackFailed = false; // 回滚失败标记，end() 据此跳过连接状态恢复，避免隐式提交本应回滚的事务
+    private State state = State.NEW;
 
     private int currentIsolation;
     private Integer originalIsolation;
@@ -73,6 +72,10 @@ public class Transaction<R> {
 
     /**
      * 获取当前事务 Connection
+     *
+     * <p>
+     * 业务代码不得直接调用 Connection 的 commit、rollback、setAutoCommit 等事务控制方法，
+     * 否则会绕过 Transaction 的状态管理。
      */
     public Connection getConnection() {
         return connection;
@@ -85,6 +88,10 @@ public class Transaction<R> {
      * 注意：开始事务 setTransactionIsolation 必须在 setAutoCommit(false) 之前调用
      */
     void begin() throws SQLException {
+        if (state != State.NEW) {
+            return;
+        }
+
         // 保存 originalIsolation 用于 end() 中恢复
         originalIsolation = connection.getTransactionIsolation();
 
@@ -95,7 +102,7 @@ public class Transaction<R> {
 
         originalAutoCommit = connection.getAutoCommit();
         connection.setAutoCommit(false);
-        active = true;
+        state = State.ACTIVE;
     }
 
     /**
@@ -104,6 +111,10 @@ public class Transaction<R> {
      * 注意：本方法仅允许嵌套事务使用
      */
     void setIsolationForNestedTransaction(int isolation) throws SQLException {
+        if (state != State.ACTIVE) {
+            return;
+        }
+
         // 比较运算符使用 < 而非 != ，嵌套事务隔离级别 "不允许" 降级
         if (this.currentIsolation < isolation) {
             this.currentIsolation = isolation;
@@ -126,7 +137,7 @@ public class Transaction<R> {
      */
     public boolean rollbackIf(boolean condition) {
         if (condition) {
-            rollbackOnly = true;
+            rollback();
         }
         return condition;
     }
@@ -145,30 +156,37 @@ public class Transaction<R> {
      * </pre>
      */
     public boolean canCommit() {
-        return !rollbackOnly;
+        return state == State.ACTIVE && !rollbackOnly;
     }
 
     /**
      * 立即提交事务。仅供框架内部使用
      */
     void commitImmediately() throws SQLException {
-        if (active /* && !rollbackOnly */) {
-            connection.commit();
-            active = false;                 // 必须后置，提交失败仍需回滚事务
-            committed = true;               // 必须后置，提交成功才允许回调 onCommitSuccess
+        if (state != State.ACTIVE) {
+            throw new IllegalStateException("Transaction is not active: " + state);
         }
+        if (rollbackOnly) {
+            throw new IllegalStateException("Transaction has been marked rollback-only");
+        }
+
+        state = State.COMMITTING;
+        connection.commit();
+        state = State.COMMITTED;
     }
 
     /**
      * 立即回滚事务。仅供框架内部使用
      */
     void rollbackImmediately() throws SQLException {
-        // active 避免重复回滚确保幂等性，TransactionExecutor 中有两处回滚调用
-        if (active) {                       // 回滚事务无需判断 rollbackOnly
-            active = false;                 // 必须前置，回滚异常时避免重复回滚
-            rollbackFailed = true;          // 必须前置，rollback 抛出任何异常（含 Error）都保持标记
+        // 回滚用于异常清理，必须保持幂等：
+        // NEW 尚未确认开启；ROLLING_BACK 不得重试；
+        // COMMITTED、ROLLED_BACK 已完成，以上状态均静默返回。
+        // COMMITTING 表示提交失败或结果未确认，仍需尝试回滚。
+        if (state == State.ACTIVE || state == State.COMMITTING) {
+            state = State.ROLLING_BACK;
             connection.rollback();
-            rollbackFailed = false;
+            state = State.ROLLED_BACK;
         }
     }
 
@@ -179,10 +197,10 @@ public class Transaction<R> {
      * 注意：结束事务 setAutoCommit 必须在 setTransactionIsolation 之前调用
      */
     void end() throws SQLException {
-        // 回滚失败时不得做任何连接状态恢复：事务可能仍未结束，setAutoCommit(true)
-        // 会隐式提交本应回滚的事务，setTransactionIsolation 在事务进行中行为由驱动决定。
-        // 连接随后会被 close，由连接池或驱动决定最终处置
-        if (rollbackFailed) {
+        // 仅在事务尚未成功开启，或已经确认提交/回滚后恢复连接状态。
+        // 未决事务中改变 autoCommit，JDBC 规定可能直接提交当前事务；
+        // 未决事务中改变 transactionIsolation 的行为由驱动定义，也允许提交当前事务。
+        if (state != State.NEW && state != State.COMMITTED && state != State.ROLLED_BACK) {
             return;
         }
 
@@ -251,7 +269,7 @@ public class Transaction<R> {
      */
     void executeOnCommitSuccess() {
         // 仅事务提交成功才回调，回滚事务以及异常场景不发生回调
-        if (!committed || onCommitSuccessList == null) {
+        if (state != State.COMMITTED || onCommitSuccessList == null) {
             return;
         }
 
@@ -263,5 +281,41 @@ public class Transaction<R> {
                 log.error(e.getMessage(), e);   // 未抛出的异常做日志
             }
         }
+    }
+
+    /**
+     * JDBC 事务控制状态，不包含 rollbackOnly 仅回滚决策
+     *
+     * <pre>
+     *  1: COMMITTING 和 ROLLING_BACK 在调用 JDBC 之前设置。如果 JDBC 调用抛出异常，
+     *     状态将保持不变，表示事务完成结果尚未确认。
+     *
+     *  2: 状态转换：
+     *      NEW -> ACTIVE -> COMMITTING -> COMMITTED
+     *                |            |
+     *                +------------+-> ROLLING_BACK -> ROLLED_BACK
+     *
+     *  3: rollbackOnly 独立于上述状态，只允许从 false 变为 true。
+     * </pre>
+     */
+    private enum State {
+
+        /** Transaction 已创建，但 JDBC 事务尚未确认开启 */
+        NEW,
+
+        /** JDBC 事务已经确认开启 */
+        ACTIVE,
+
+        /** 正在提交；commit 抛出异常时保持该状态，随后仍可尝试回滚 */
+        COMMITTING,
+
+        /** 已确认提交成功 */
+        COMMITTED,
+
+        /** 正在回滚；rollback 抛出异常时保持该状态，end() 据此跳过连接状态恢复 */
+        ROLLING_BACK,
+
+        /** 已确认回滚成功 */
+        ROLLED_BACK
     }
 }
