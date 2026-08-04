@@ -46,20 +46,26 @@ public class Transaction<R> {
 
     static final Log log = Log.get(Transaction.class);
 
+    // 当前事务使用的连接，构造后不可变
     private final Connection connection;
 
-    // rollbackOnly 是独立于事务完成方向的决策标记，与 JDBC 事务执行状态正交，不能合并到 state 中
-    private boolean rollbackOnly = false;
+    // 事务生命周期状态
     private State state = State.NEW;
 
+    // 独立于生命周期状态的回滚决策标记，只允许从 false 变为 true
+    private boolean rollbackOnly = false;
+
+    // 当前事务要求的隔离级别，嵌套事务可能提升该值
     private int currentIsolation;
+
+    // 开始事务前的连接状态，用于 end() 恢复
     private Integer originalIsolation;
     private Boolean originalAutoCommit;
 
-    // 异常产生之后回调
+    // 异常发生后的回调
     private Function<Exception, R> onException;
 
-    // 事务提交成功之后回调。不提供 onBeforeCommit 回调，提交之前的代码(包括回滚事务)可直接书写在事务之中不需要该回调
+    // 事务提交成功后的回调。不提供 onBeforeCommit 回调，提交前的代码（包括回滚事务）可直接写在事务中，无需该回调
     private List<Runnable> onCommitSuccessList;
 
     public Transaction(Connection connection, int isolation) {
