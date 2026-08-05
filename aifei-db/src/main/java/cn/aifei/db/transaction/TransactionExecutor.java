@@ -38,15 +38,19 @@ public class TransactionExecutor {
 
         // 嵌套事务
         if (transaction != null) {
+            // 禁止在当前事务的 onException 回调中再次开启事务（仅限制同一 DbConfig 对象）
+            transaction.checkOperationAllowed();
             return handleNestedTransaction(transaction, isolation, atom, onBeforeCommit);
         }
 
         Connection connection = null;
+        boolean transactionInitialized = false;
         try {
             connection = config.getDataSource().getConnection();
             transaction = new Transaction<>(connection, isolation.level);
             transaction.begin();
             transactionKit.setTransaction(transaction);
+            transactionInitialized = true;
 
             R ret = atom.run(transaction);
             // 若返回值类型实现了 RollbackDecision 接口，则根据其 shouldRollback() 返回值决定是否回滚事务
@@ -75,16 +79,18 @@ public class TransactionExecutor {
                 }
             }
 
-            // 异常回调，局部回调优先级高于全局回调
-            if (transaction != null && transaction.getOnException() != null) {
-                log.error(e.getMessage(), e);           // 未抛出的异常做日志
-                return transaction.getOnException().apply(e);
-            } else if (transactionKit.getOnException() != null) {
-                log.error(e.getMessage(), e);           // 未抛出的异常做日志
-                return (R) transactionKit.getOnException().apply(e);
+            // 事务初始化成功才允许执行异常回调，局部回调优先级高于全局回调
+            if (transactionInitialized) {
+                if (transaction.getOnException() != null) {
+                    log.error(e.getMessage(), e);           // 未抛出的异常做日志
+                    return transaction.executeOnException(transaction.getOnException(), e);
+                } else if (transactionKit.getOnException() != null) {
+                    log.error(e.getMessage(), e);           // 未抛出的异常做日志
+                    return transaction.executeOnException((Function<Exception, R>) transactionKit.getOnException(), e);
+                }
             }
 
-            // 没有异常回调时向上抛出异常
+            // 没有异常回调或者事务初始化失败时向上抛出异常
             throw e instanceof RuntimeException ? (RuntimeException) e : new AifeiDbException(e);
 
         } catch (Error e) {
@@ -158,7 +164,8 @@ public class TransactionExecutor {
             // 由于后续仍然抛出异常，所以回调函数返回值无意义，但回调函数中可能有代码需要被执行，不必节省这点消耗
             if (transaction.getOnException() != null) {
                 try {
-                    transaction.getOnException().apply(e);  // 注意不要 return，需在后面抛出异常
+                    // 注意不要 return，需在后面抛出异常
+                    transaction.executeOnException(transaction.getOnException(), e);
                 } catch (Exception ex) {
                     // 回调抛出的 Exception 不得掩盖原始异常，记录日志后继续抛出原始异常（Error 不捕获，仍向外抛出）
                     log.error(ex.getMessage(), ex);         // 未抛出的异常做日志

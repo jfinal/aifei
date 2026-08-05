@@ -16,6 +16,7 @@
 
 package cn.aifei.db.transaction;
 
+import cn.aifei.db.core.AifeiDbException;
 import cn.aifei.log.Log;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -65,6 +66,9 @@ public class Transaction<R> {
     // 异常发生后的回调
     private Function<Exception, R> onException;
 
+    // 正在执行当前事务的 onException 回调，防止回调继续复用当前事务的连接
+    private boolean executingOnException = false;
+
     // 事务提交成功后的回调。不提供 onBeforeCommit 回调，提交前的代码（包括回滚事务）可直接写在事务中，无需该回调
     private List<Runnable> onCommitSuccessList;
 
@@ -84,6 +88,7 @@ public class Transaction<R> {
      * 否则会绕过 Transaction 的状态管理。
      */
     public Connection getConnection() {
+        checkOperationAllowed();
         return connection;
     }
 
@@ -224,6 +229,12 @@ public class Transaction<R> {
     /**
      * 设置异常处理函数，函数返回值将成为 transaction(...) 的返回值。
      * 当前事务的 onException 高于全局
+     *
+     * <p>
+     * 该回调仅用于将事务异常转换为失败返回值。回调执行期间不得通过当前 Transaction
+     * 或同一 DbConfig 的常规数据库入口继续复用当前事务，也不得在当前事务上下文中再次开启事务，
+     * 违反该约束时框架将立即抛出异常。
+     * 本限制不拦截其它 DbConfig 的操作，也不拦截直接使用原始 DataSource 获取连接
      */
     public void onException(Function<Exception, R> onException) {
         this.onException = onException;     // 注意：这里必须允许 null 值，框架内部复位上层函数可能为 null
@@ -231,6 +242,21 @@ public class Transaction<R> {
 
     Function<Exception, R> getOnException() {
         return onException;
+    }
+
+    void checkOperationAllowed() {
+        if (executingOnException) {
+            throw new AifeiDbException("Database operations and transactions are not allowed in an onException callback.");
+        }
+    }
+
+    R executeOnException(Function<Exception, R> onException, Exception exception) {
+        executingOnException = true;
+        try {
+            return onException.apply(exception);
+        } finally {
+            executingOnException = false;
+        }
     }
 
     // 辅助 TransactionExecutor 正确调用嵌套事务各层级 onException

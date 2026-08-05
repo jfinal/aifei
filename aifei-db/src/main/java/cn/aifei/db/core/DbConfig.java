@@ -400,6 +400,7 @@ public class DbConfig {
     /**
      * 配置事务抛出异常时的回调函数
      * 注意：当前事务内部通过 tx.onException(...) 配置的回调函数，优先级高于此处的配置
+     *      回调仅用于将事务异常转换为失败返回值，执行期间不支持数据库操作，否则抛出异常。
      */
     public DbConfig setOnTransactionException(Function<Exception, ?> onTransactionException) {
         transactionKit.setOnException(onTransactionException);
@@ -458,6 +459,3 @@ public class DbConfig {
         this.maxResultRows = maxResultRows;
     }
 }
-
-
-
