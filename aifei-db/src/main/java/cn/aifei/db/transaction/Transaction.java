@@ -297,35 +297,33 @@ public class Transaction<R> {
     }
 
     /**
-     * JDBC 事务控制状态，不包含 rollbackOnly 仅回滚决策
+     * 事务控制的生命周期状态。rollbackOnly 是独立的回滚决策标记，
+     * 不属于本枚举，且只允许从 false 变为 true。
      *
      * <pre>
-     *  1: COMMITTING 和 ROLLING_BACK 在调用 JDBC 之前设置。如果 JDBC 调用抛出异常，
-     *     状态将保持不变，表示事务完成结果尚未确认。
+     * 提交：NEW -> ACTIVE -> COMMITTING -> COMMITTED
+     * 回滚：NEW -> ACTIVE -> ROLLING_BACK -> ROLLED_BACK
+     * 提交未正常返回后尝试回滚：COMMITTING -> ROLLING_BACK -> ROLLED_BACK
      *
-     *  2: 状态转换：
-     *      NEW -> ACTIVE -> COMMITTING -> COMMITTED
-     *                |            |
-     *                +------------+-> ROLLING_BACK -> ROLLED_BACK
-     *
-     *  3: rollbackOnly 独立于上述状态，只允许从 false 变为 true。
+     * COMMITTING 和 ROLLING_BACK 在 JDBC 调用前设置。调用未正常返回时，
+     * 状态保持不变，表示操作结果尚未确认。
      * </pre>
      */
     private enum State {
 
-        /** Transaction 已创建，但 JDBC 事务尚未确认开启 */
+        /** Transaction 已创建，begin() 尚未成功完成 */
         NEW,
 
-        /** JDBC 事务已经确认开启 */
+        /** begin() 已成功完成，尚未进入提交或回滚流程 */
         ACTIVE,
 
-        /** 正在提交；commit 抛出异常时保持该状态，随后仍可尝试回滚 */
+        /** 已进入提交流程；commit() 未正常返回时表示提交结果尚未确认 */
         COMMITTING,
 
         /** 已确认提交成功 */
         COMMITTED,
 
-        /** 正在回滚；rollback 抛出异常时保持该状态，end() 据此跳过连接状态恢复 */
+        /** 已进入回滚流程；rollback() 未正常返回时表示回滚结果尚未确认 */
         ROLLING_BACK,
 
         /** 已确认回滚成功 */
