@@ -227,14 +227,8 @@ public class Transaction<R> {
     }
 
     /**
-     * 设置异常处理函数，函数返回值将成为 transaction(...) 的返回值。
-     * 当前事务的 onException 高于全局
-     *
-     * <p>
-     * 该回调仅用于将事务异常转换为失败返回值。回调执行期间不得通过当前 Transaction
-     * 或同一 DbConfig 的常规数据库入口继续复用当前事务，也不得在当前事务上下文中再次开启事务，
-     * 违反该约束时框架将立即抛出异常。
-     * 本限制不拦截其它 DbConfig 的操作，也不拦截直接使用原始 DataSource 获取连接
+     * 设置异常处理函数，函数返回值将成为 transaction(...) 的返回值。当前事务的 onException 优先级高于全局。
+     * 注意：回调仅用于将事务异常转换为失败返回值，执行期间不支持数据库操作，否则抛出异常。
      */
     public void onException(Function<Exception, R> onException) {
         this.onException = onException;     // 注意：这里必须允许 null 值，框架内部复位上层函数可能为 null
