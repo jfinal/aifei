@@ -26,8 +26,7 @@ import java.util.stream.Collectors;
  */
 public enum Isolation {
 
-    // 数值分别为：0、1、2、4、8
-    NONE(Connection.TRANSACTION_NONE),
+    // 数值分别为：1、2、4、8
     READ_UNCOMMITTED(Connection.TRANSACTION_READ_UNCOMMITTED),
     READ_COMMITTED(Connection.TRANSACTION_READ_COMMITTED),
     REPEATABLE_READ(Connection.TRANSACTION_REPEATABLE_READ),
