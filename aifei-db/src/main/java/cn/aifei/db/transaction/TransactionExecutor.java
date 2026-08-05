@@ -131,8 +131,7 @@ public class TransactionExecutor {
                 transactionKit.removeTransaction();
             }
 
-            // onCommitSuccess 回调在连接关闭（含关闭失败的情况）与 ThreadLocal 清理之后执行，
-            // 避免回调中的同线程数据库操作误用已提交事务的连接。仅提交成功才会回调，由 Transaction 内部判断
+            // 连接关闭且 ThreadLocal 清理后执行，仅提交成功时生效
             if (transaction != null) {
                 transaction.executeOnCommitSuccess();
             }
@@ -140,7 +139,7 @@ public class TransactionExecutor {
     }
 
     private <R> R handleNestedTransaction(Transaction<R> transaction, Isolation isolation, Atom<R> atom, BiConsumer<Transaction<?>, Object> onBeforeCommit) {
-        // 持有并删除上层回调函数：1、供后续在 finally 中恢复。2、避免本层无回调函数且异常发生时调用到上层回调函数
+        // 暂存并移除上层回调，避免本层误用；finally 中恢复
         Function<Exception, R> upperLevelOnException = transaction.getAndRemoveOnException();
 
         try {
@@ -160,11 +159,9 @@ public class TransactionExecutor {
         } catch (Exception e) {
             transaction.rollback();
 
-            // 此处不 return 回调函数的执行结果，否则上层事务感知不到异常可能会认为业务执行成功（虽然事务会被回滚）
-            // 由于后续仍然抛出异常，所以回调函数返回值无意义，但回调函数中可能有代码需要被执行，不必节省这点消耗
+            // 嵌套事务不能吞掉异常，因此只执行回调，不使用其返回值
             if (transaction.getOnException() != null) {
                 try {
-                    // 注意不要 return，需在后面抛出异常
                     transaction.executeOnException(transaction.getOnException(), e);
                 } catch (Exception ex) {
                     // 回调抛出的 Exception 不得掩盖原始异常，记录日志后继续抛出原始异常（Error 不捕获，仍向外抛出）
@@ -172,7 +169,7 @@ public class TransactionExecutor {
                 }
             }
 
-            // 向上抛出：1、否则上层可能误以为事务已提交业务已成功。2、避免执行后续未执行的代码。3、上层做日志。
+            // 向上抛出，避免外层误判业务成功或继续执行
             throw e instanceof RuntimeException ? (RuntimeException) e : new AifeiDbException(e);
 
         } catch (Error e) {
@@ -180,7 +177,7 @@ public class TransactionExecutor {
             throw e;
 
         } finally {
-            // 恢复上一层异常回调函数（即使为 null），确保回调函数执行结果返回给正确的调用者（层级正确）
+            // 恢复上层回调（包括 null）
             transaction.onException(upperLevelOnException);
         }
     }

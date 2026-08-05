@@ -66,7 +66,7 @@ public class Transaction<R> {
     // 异常发生后的回调
     private Function<Exception, R> onException;
 
-    // 正在执行当前事务的 onException 回调，防止回调继续复用当前事务的连接
+    // 正在执行 onException 回调，用于禁止复用当前事务
     private boolean executingOnException = false;
 
     // 事务提交成功后的回调。不提供 onBeforeCommit 回调，提交前的代码（包括回滚事务）可直接写在事务中，无需该回调
@@ -227,8 +227,10 @@ public class Transaction<R> {
     }
 
     /**
-     * 设置异常处理函数，函数返回值将成为 transaction(...) 的返回值。当前事务的 onException 优先级高于全局。
-     * 注意：回调仅用于将事务异常转换为失败返回值，执行期间不支持数据库操作，否则抛出异常。
+     * 设置当前层级的异常回调。顶层局部回调优先于全局回调，其返回值作为 transaction(...) 的返回值；
+     * 嵌套层回调的返回值被忽略，异常继续向外传播。
+     * 回调期间禁止通过当前 Transaction 或同一 DbConfig 的常规入口访问数据库、开启事务；
+     * 其它 DbConfig 和直接使用 DataSource 不受限制。
      */
     public void onException(Function<Exception, R> onException) {
         this.onException = onException;     // 注意：这里必须允许 null 值，框架内部复位上层函数可能为 null
@@ -261,16 +263,9 @@ public class Transaction<R> {
     }
 
     /**
-     * 设置当前事务提交成功之后的回调函数。
-     *
-     * <p>
-     * 典型的应用场景是事务提交成功后在其它线程中更新缓存
-     * 注意：该回调在事务提交成功后才被调用，如果事务提交时抛出异常则不会被调用。
-     *      该回调在连接状态恢复、连接关闭（含恢复或关闭失败的情况）与 ThreadLocal
-     *      清理之后执行，回调中的数据库操作不再处于当前事务之中
-     *
-     * <p>
-     * 警告：回调发生异常不会向外抛出，如需处理异常情况需在回调中自行 try catch
+     * 设置事务提交成功后的回调，按注册顺序的逆序执行。
+     * 回调在连接关闭和 ThreadLocal 清理后执行，其中的数据库操作不属于当前事务。
+     * 回调抛出的 Exception 仅记录日志，Error 仍向外抛出。
      */
     public void onCommitSuccess(Runnable onCommitSuccess) {
         if (onCommitSuccess != null) {
@@ -282,16 +277,8 @@ public class Transaction<R> {
     }
 
     /**
-     * 事务提交成功之后回调 onCommitSuccess。仅供框架内部使用，
-     * 由 TransactionExecutor 在连接关闭（含关闭失败的情况）与 ThreadLocal 清理之后调用，
-     * 避免回调中的同线程数据库操作误用已提交事务的连接
-     *
-     * <p>
-     * 注意，此回调不向外抛出异常
-     * 1：调用方需要在 onCommitSuccess 函数中自行 try catch 捕获异常进行适当处理
-     * 2：此回调发生在事务提交成功之后，抛出异常无法回滚事务
-     * 3：此回调异常不向外传播，保障事务提交成功后的主线流程不受影响
-     * 4：此回调通常用于在事务提交后进行异步操作，例如更新缓存、发送通知等等
+     * 执行事务提交成功回调。仅供框架内部使用。
+     * 回调抛出的 Exception 仅记录日志，Error 仍向外抛出。
      */
     void executeOnCommitSuccess() {
         // 仅事务提交成功才回调，回滚事务以及异常场景不发生回调
