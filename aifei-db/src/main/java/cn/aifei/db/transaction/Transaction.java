@@ -53,7 +53,7 @@ public class Transaction<R> {
     // 事务生命周期状态
     private State state = State.NEW;
 
-    // 独立于生命周期状态的回滚决策标记，只允许从 false 变为 true
+    // 独立于生命周期状态的单向回滚决策标记，只允许从 false 变为 true
     private boolean rollbackOnly = false;
 
     // 当前事务要求的隔离级别，嵌套事务可能提升该值
@@ -297,8 +297,13 @@ public class Transaction<R> {
     }
 
     /**
-     * 事务控制的生命周期状态。rollbackOnly 是独立的回滚决策标记，
-     * 不属于本枚举，且只允许从 false 变为 true。
+     * 事务控制的生命周期状态。
+     *
+     * <p>
+     * rollbackOnly 与生命周期状态在语义上正交：state 描述 JDBC 事务所处的执行阶段；
+     * rollbackOnly 是 ACTIVE 阶段上的单向回滚决策标记。将它置为 true 不会改变 state
+     * 或立即执行 JDBC 回滚：事务仍保持 ACTIVE 并可继续执行数据库操作，只是永久失去
+     * 提交资格，最终由 TransactionExecutor 统一回滚。
      *
      * <pre>
      * 提交：NEW -> ACTIVE -> COMMITTING -> COMMITTED
