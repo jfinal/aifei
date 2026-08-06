@@ -73,7 +73,7 @@ public class Transactional implements Interceptor {
             }
         });
 
-        // action 抛出异常时，Transaction.onException(...) 的返回值需要显式写回 Invocation
         inv.setReturnValue(returnValue);
     }
 }
+
