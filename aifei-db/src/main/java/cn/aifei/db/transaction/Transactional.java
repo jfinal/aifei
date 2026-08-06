@@ -65,10 +65,10 @@ public class Transactional implements Interceptor {
                 inv.invoke();
                 return inv.getReturnValue();    // 若返回 RollbackDecision 实例，则会参与事务回滚
             } finally {
-                if (previous != null) {
-                    THREAD_LOCAL.set(previous);
-                } else {
+                if (previous == null) {
                     THREAD_LOCAL.remove();
+                } else {
+                    THREAD_LOCAL.set(previous);
                 }
             }
         });
