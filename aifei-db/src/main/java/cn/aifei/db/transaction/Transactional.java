@@ -21,7 +21,10 @@ import cn.aifei.aop.Invocation;
 import cn.aifei.db.core.Db;
 
 /**
- * 基于 AOP 的事务拦截器。绝大多数情况推荐使用 Db.transaction(...) 支持事务。
+ * 基于 AOP 的事务拦截器。多数情况推荐使用 Db.transaction(...) 支持事务。
+ *
+ * 可配合 TransactionArgument 注入 Transaction 对象，便如在拦截器场景下
+ * 依然可以使用 Transaction 提供的实用功能
  *
  * <pre>
  *  注意：
@@ -42,11 +45,22 @@ import cn.aifei.db.core.Db;
  */
 public class Transactional implements Interceptor {
 
+    static final ThreadLocal<Transaction<?>> THREAD_LOCAL = new ThreadLocal<>();
+
+    public static Transaction<?> getTransaction() {
+        return THREAD_LOCAL.get();
+    }
+
     @Override
     public void intercept(Invocation inv) throws Exception {
         Db.transaction(tx -> {
-            inv.invoke();
-            return inv.getReturnValue();    // 若返回 RollbackDecision 实例，则会参与事务回滚
+            try {
+                THREAD_LOCAL.set(tx);
+                inv.invoke();
+                return inv.getReturnValue();    // 若返回 RollbackDecision 实例，则会参与事务回滚
+            } finally {
+                THREAD_LOCAL.remove();
+            }
         });
     }
 }
