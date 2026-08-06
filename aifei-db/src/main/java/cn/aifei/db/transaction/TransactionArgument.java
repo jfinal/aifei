@@ -22,8 +22,11 @@ import cn.aifei.core.Input;
 import cn.aifei.core.Output;
 
 /**
- * 结合 Transactional 拦截器注入 Transaction 对象，便如在拦截器场景下依然可以
+ * 结合 Transactional 拦截器为 action 方法注入 Transaction 对象，便于在拦截器场景下依然可以
  * 使用 Transaction 提供的实用功能，如 onException 回调与 rollback() 回滚
+ *
+ * <p>
+ * 注意：Argument 机制仅为路由 action 方法解析实参，不会为普通业务层代理方法注入实参。
  *
  * <pre>
  * 例子：
@@ -35,8 +38,8 @@ import cn.aifei.core.Output;
  *  2: 使用 Transactional、Transaction
  *      \@Before(Transactional.class)
  *      public Vip service(Transaction<Vip> transaction) {
- *          // 使用 onException 回调
- *          transaction.onException(e -> Vip.findById(123));
+ *          // 使用 onException 回调，回调中不得访问数据库
+ *          transaction.onException(e -> new Vip());
  *
  *          if (condition()) {
  *              // 使用 rollback() 回滚
@@ -49,7 +52,12 @@ import cn.aifei.core.Output;
  * </pre>
  */
 public class TransactionArgument extends Argument<Input, Output, Transaction<?>> implements NoMatch {
+    @Override
     public Transaction<?> getValue(Input input, Output output) {
-        return Transactional.getTransaction();
+        Transaction<?> transaction = Transactional.getTransaction();
+        if (transaction == null) {
+            throw new IllegalStateException("TransactionArgument requires Transactional interceptor.");
+        }
+        return transaction;
     }
 }
