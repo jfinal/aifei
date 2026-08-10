@@ -73,6 +73,7 @@ public class Transactional implements Interceptor {
             }
         });
 
+        // 用于注入 onException 回调返回值，其它流程已在 Invocation.invoke() 中赋值
         inv.setReturnValue(returnValue);
     }
 }
