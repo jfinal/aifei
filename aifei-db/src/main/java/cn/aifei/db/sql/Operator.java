@@ -103,9 +103,9 @@ public enum Operator {
     }
 
     /**
-     * 参数 key 支持全大小与全小写字符，但不支持前后空格。
+     * 参数 key 支持全大写与全小写字符，但不支持前后空格。
      */
-    public static Operator from(String key) {
+    public static Operator of(String key) {
         return cache.get(key);
     }
 

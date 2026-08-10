@@ -147,7 +147,7 @@ public class Condition {
             throw new ParseException(directive + " second argument must be a string literal", location);
         }
         String opStr = ((Const) expr).getStr();
-        operator = Operator.from(opStr);
+        operator = Operator.of(opStr);
         if (operator == null) {
             throw new ParseException(directive + " invalid operator (no extra spaces allowed): " + opStr, location);
         }
