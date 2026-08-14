@@ -163,9 +163,13 @@ public class Aifei {
         for (Plugin plugin : plugins.getPluginList()) {
             try {
                 plugin.start();
-            } catch (Exception e) {
-                Log.get(Aifei.class).error("Starting plugin error: " + e.getMessage(), e);
-                throw new RuntimeException(e.getMessage(), e);  // 抛异常终止启动
+            } catch (Throwable t) {
+                try {
+                    Log.get(Aifei.class).error("Failed to start plugin: " + plugin.getClass().getName(), t);
+                } catch (Throwable ignored) {
+                    // 日志失败不能阻止 JVM 退出
+                }
+                System.exit(1);
             }
         }
     }
@@ -173,10 +177,15 @@ public class Aifei {
     private static void stopPlugins(Plugins plugins) {
         List<Plugin> pluginList = plugins.getPluginList();
         for (int i = pluginList.size() - 1; i >= 0; i--) {
+            Plugin plugin = pluginList.get(i);
             try {
-                pluginList.get(i).stop();
-            } catch (Exception e) {
-                Log.get(Aifei.class).error("Stopping plugin error: " + e.getMessage(), e);
+                plugin.stop();
+            } catch (Throwable t) {
+                try {
+                    Log.get(Aifei.class).error("Failed to stop plugin: " + plugin.getClass().getName(), t);
+                } catch (Throwable ignored) {
+                    // 日志失败不能阻止其他 Plugin 关闭
+                }
             }
         }
     }
@@ -226,5 +235,4 @@ public class Aifei {
         return settings;
     }
 }
-
 
