@@ -46,6 +46,23 @@ public class Aifei {
     public static <I extends Input, O extends Output> void start(AifeiConfig<I, O> aifeiConfig, String[] args) {
         Objects.requireNonNull(aifeiConfig, "aifeiConfig can not be null.");
 
+        try {
+            doStart(aifeiConfig, args);
+        } catch (Throwable t) {
+            try {
+                Log.get(Aifei.class).error("Failed to start Aifei.", t);
+            } catch (Throwable ignored) {
+                try {
+                    System.err.println("Failed to start Aifei.");
+                    t.printStackTrace(System.err);
+                } catch (Throwable ignoredAgain) {
+                }
+            }
+            System.exit(1);
+        }
+    }
+
+    private static <I extends Input, O extends Output> void doStart(AifeiConfig<I, O> aifeiConfig, String[] args) {
         System.out.println("Starting Aifei " + VERSION);
         long startTime = System.currentTimeMillis();
         commandLineArgumentToSystemProperty(args);
@@ -85,13 +102,14 @@ public class Aifei {
 
         // 启动 Server
         settings.getServer().start();
-        System.out.println("Started in " + getTimeSpent(startTime) + " s. Enjoy Aifei (^_^)\n");
+        String timeSpent = getTimeSpent(startTime);
 
         /*
          * 使用 kill pid 命令或者 ctrl + c 关闭 JVM 时，调用 Aifei.stop() 方法。
-         * 注意：aifei 下测试成功。只支持 kill pid 不支持 kill -9 pid
+         * 注意: 只支持 kill pid 不支持 kill -9 pid
          */
         Runtime.getRuntime().addShutdownHook(new Thread(Aifei::stop));
+        System.out.println("Started in " + timeSpent + " s. Enjoy Aifei (^_^)\n");
     }
 
     /**
@@ -164,12 +182,7 @@ public class Aifei {
             try {
                 plugin.start();
             } catch (Throwable t) {
-                try {
-                    Log.get(Aifei.class).error("Failed to start plugin: " + plugin.getClass().getName(), t);
-                } catch (Throwable ignored) {
-                    // 日志失败不能阻止 JVM 退出
-                }
-                System.exit(1);
+                throw new IllegalStateException("Failed to start plugin: " + plugin.getClass().getName(), t);
             }
         }
     }
