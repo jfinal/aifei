@@ -296,7 +296,7 @@ public class MetaReader {
                     // 而 Dialect 可能使用 getDate()、getTimestamp() 等类型化 getter。
                     // 必须通过 Dialect 使生成阶段的源类型与运行时读取路径保持一致。
                     int jdbcType = rsmd.getColumnType(i);
-                    String runtimeClassName = dialect.getColumnValueClassName(rsmd, i);
+                    String runtimeClassName = dialect.getColumnValueClassName(rsmd, i, jdbcType);
 
                     String javaType = typeMapping.getType(runtimeClassName);
                     if (javaType == null) {

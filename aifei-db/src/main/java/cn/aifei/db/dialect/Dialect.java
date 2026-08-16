@@ -453,6 +453,9 @@ public abstract class Dialect {
      *
      * 如果子类覆盖 readColumnValue(...) 并改变了某种 JDBC 类型的读取方式，
      * 必须同时覆盖本方法，使生成阶段与运行阶段继续保持一致。
+     * jdbcType 由调用方对当前列调用 getColumnType(int) 一次获取后传入，
+     * 以便类名推断与 JDBC 类型兜底共用同一个类型值，避免在
+     * MetaReader、Dialect 及子类 Dialect 中重复读取相同元数据。
      * </pre>
      *
      * @see ResultSetMetaData#getColumnClassName(int)
@@ -460,8 +463,7 @@ public abstract class Dialect {
      * @see ResultSet#getDate(int)
      * @see ResultSet#getTimestamp(int)
      */
-    public String getColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex) throws SQLException {
-        int jdbcType = resultSetMetaData.getColumnType(columnIndex);
+    public String getColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
         if (jdbcType == Types.DATE) {
             return java.sql.Date.class.getName();
         } else if (jdbcType == Types.TIMESTAMP) {

@@ -58,11 +58,11 @@ public class SqliteDialect extends Dialect {
 	 * TypeMapping 的源类型，不能直接使用 getColumnClassName(int) 报告的 getObject 类型。
 	 */
 	@Override
-	public String getColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex) throws SQLException {
-		if (resultSetMetaData.getColumnType(columnIndex) == Types.BOOLEAN) {
+	public String getColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
+		if (jdbcType == Types.BOOLEAN) {
 			return Boolean.class.getName();
 		}
-		return super.getColumnValueClassName(resultSetMetaData, columnIndex);
+		return super.getColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
 	}
 
 	@Override
