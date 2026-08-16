@@ -29,34 +29,31 @@ public class DialectColumnValueClassNameTest {
     @Test
     public void dateAndTimestampFollowTypedRuntimeReaders() throws Exception {
         assertEquals(java.sql.Date.class.getName(),
-                dialect.getColumnValueClassName(metadata(String.class.getName(), Types.DATE), 1));
+                dialect.getColumnValueClassName(metadata(String.class.getName()), 1, Types.DATE));
         assertEquals(java.sql.Timestamp.class.getName(),
-                dialect.getColumnValueClassName(metadata(String.class.getName(), Types.TIMESTAMP), 1));
+                dialect.getColumnValueClassName(metadata(String.class.getName()), 1, Types.TIMESTAMP));
     }
 
     @Test
     public void otherTypesFollowGetObjectMetadata() throws Exception {
         assertEquals(java.time.LocalTime.class.getName(),
-                dialect.getColumnValueClassName(metadata(java.time.LocalTime.class.getName(), Types.TIME), 1));
+                dialect.getColumnValueClassName(metadata(java.time.LocalTime.class.getName()), 1, Types.TIME));
         assertEquals("vendor.TimestampWithTimeZone",
-                dialect.getColumnValueClassName(metadata("vendor.TimestampWithTimeZone", Types.TIMESTAMP_WITH_TIMEZONE), 1));
+                dialect.getColumnValueClassName(metadata("vendor.TimestampWithTimeZone"), 1, Types.TIMESTAMP_WITH_TIMEZONE));
     }
 
     @Test
     public void sqliteBooleanFollowsItsTypedRuntimeReader() throws Exception {
         Dialect sqliteDialect = new SqliteDialect();
         assertEquals(Boolean.class.getName(),
-                sqliteDialect.getColumnValueClassName(metadata(Integer.class.getName(), Types.BOOLEAN), 1));
+                sqliteDialect.getColumnValueClassName(metadata(Integer.class.getName()), 1, Types.BOOLEAN));
     }
 
-    private ResultSetMetaData metadata(String className, int jdbcType) {
+    private ResultSetMetaData metadata(String className) {
         return (ResultSetMetaData) Proxy.newProxyInstance(
                 getClass().getClassLoader(),
                 new Class<?>[]{ResultSetMetaData.class},
                 (proxy, method, args) -> {
-                    if ("getColumnType".equals(method.getName())) {
-                        return jdbcType;
-                    }
                     if ("getColumnClassName".equals(method.getName())) {
                         return className;
                     }

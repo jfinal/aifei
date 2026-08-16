@@ -16,133 +16,193 @@
 
 package cn.aifei.db.factory;
 
+import cn.aifei.db.core.AifeiRow;
+import cn.aifei.db.core.Dao;
+import cn.aifei.db.core.DbConfig;
+import cn.aifei.db.core.Row;
+import cn.aifei.db.dialect.H2Dialect;
+import cn.aifei.db.ext.NullDataSource;
 import org.junit.Test;
-import java.io.InputStream;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.sql.Blob;
-import java.sql.Clob;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Types;
-import static org.junit.Assert.assertArrayEquals;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class RowFactoryTest {
 
-    private final TestRowFactory factory = new TestRowFactory();
-
     @Test
-    public void readValuePreservesGetObjectType() throws Exception {
-        Object driverValue = new Object();
-        byte[] driverBytes = new byte[]{1, 2};
-        ResultSet rs = resultSet(driverValue);
+    public void rowsUseColumnLabelsCachedJdbcTypesAndConfiguredDialect() throws Exception {
+        Object[][] values = {{"alice", 18}, {"bob", 20}};
+        TrackingDialect dialect = new TrackingDialect(values);
+        RecordingDataMapFactory dataMapFactory = new RecordingDataMapFactory();
+        Dao dao = new Dao(new DbConfig("row-factory", NullDataSource.instance, dialect));
+        dao.dataMapFactory(dataMapFactory);
+        ResultSetFixture resultSet = new ResultSetFixture(
+                new String[]{"user_name", "user_age"},
+                new int[]{Types.VARCHAR, Types.INTEGER},
+                values.length);
 
-        assertSame(driverValue, factory.read(rs, Types.VARCHAR));
-        assertSame(driverValue, factory.read(rs, Types.INTEGER));
-        assertSame(driverBytes, factory.read(resultSet(driverBytes), Types.BINARY));
-        assertSame(driverBytes, factory.read(resultSet(driverBytes), Types.VARBINARY));
-        assertSame(driverValue, factory.read(rs, Types.DATE));
-        assertSame(driverValue, factory.read(rs, Types.TIME));
-        assertSame(driverValue, factory.read(rs, Types.TIMESTAMP));
-        assertSame(driverValue, factory.read(rs, Types.TIME_WITH_TIMEZONE));
-        assertSame(driverValue, factory.read(rs, Types.TIMESTAMP_WITH_TIMEZONE));
-        assertSame(driverValue, factory.read(rs, Types.OTHER));
-    }
+        List<Row> rows = new RowFactory().get(dao, resultSet.proxy, null);
 
-    @Test
-    public void readValueOnlyMaterializesActualLobObjects() throws Exception {
-        byte[] expected = new byte[]{1, 2, 3, 4};
-        byte[] driverBytes = new byte[]{5, 6};
-        String driverString = "already materialized";
+        assertEquals(2, rows.size());
+        assertEquals("alice", rows.get(0).get("user_name"));
+        assertEquals(Integer.valueOf(18), rows.get(0).get("user_age"));
+        assertEquals("bob", rows.get(1).get("user_name"));
+        assertEquals(Integer.valueOf(20), rows.get(1).get("user_age"));
+        assertSame(dataMapFactory.maps.get(0), rows.get(0).data());
+        assertSame(dataMapFactory.maps.get(1), rows.get(1).data());
 
-        assertArrayEquals(expected, (byte[]) factory.read(resultSet(blob(expected)), Types.BLOB));
-        Clob clob = clob("clob value");
-        assertEquals("clob value", factory.read(resultSet(clob), Types.CLOB));
-        assertEquals("clob value", factory.read(resultSet(clob), Types.NCLOB));
-        assertSame(driverBytes, factory.read(resultSet(driverBytes), Types.BLOB));
-        assertSame(driverString, factory.read(resultSet(driverString), Types.CLOB));
+        assertEquals(Arrays.asList(Types.VARCHAR, Types.INTEGER, Types.VARCHAR, Types.INTEGER),
+                dialect.jdbcTypes);
+        assertEquals(Arrays.asList(1, 2, 1, 2), dialect.columnIndexes);
+        assertEquals(1, resultSet.metadata.columnCountCalls);
+        assertEquals(Arrays.asList(1, 2), resultSet.metadata.labelCalls);
+        assertEquals(Arrays.asList(1, 2), resultSet.metadata.typeCalls);
     }
 
     @Test
-    public void handleBlobReadsUntilEndOfStream() throws Exception {
-        byte[] expected = new byte[]{1, 2, 3, 4};
-        Blob blob = blob(expected);
+    public void forEachCallbackConsumesRowsWithoutAccumulatingAndMayStopIteration() throws Exception {
+        Object[][] values = {{"first"}, {"second"}, {"third"}};
+        TrackingDialect dialect = new TrackingDialect(values);
+        Dao dao = new Dao(new DbConfig("row-callback", NullDataSource.instance, dialect));
+        ResultSetFixture resultSet = new ResultSetFixture(
+                new String[]{"name"}, new int[]{Types.VARCHAR}, values.length);
+        List<String> visited = new ArrayList<>();
 
-        assertArrayEquals(expected, factory.readBlob(blob));
-        assertEquals(0, factory.readBlob(blob(new byte[0])).length);
+        List<Row> returned = new RowFactory().get(dao, resultSet.proxy, row -> {
+            visited.add(row.get("name"));
+            return visited.size() < 2;
+        });
+
+        assertTrue(returned.isEmpty());
+        assertEquals(Arrays.asList("first", "second"), visited);
+        assertEquals(2, resultSet.nextCalls);
+        assertEquals(2, dialect.jdbcTypes.size());
     }
 
-    private Blob blob(byte[] data) {
-        return (Blob) Proxy.newProxyInstance(
-                getClass().getClassLoader(),
-                new Class<?>[]{Blob.class},
-                (proxy, method, args) -> {
-                    if ("length".equals(method.getName())) {
-                        return (long) data.length;
-                    }
-                    if ("getBinaryStream".equals(method.getName())) {
-                        return oneByteAtATime(data);
-                    }
-                    throw new UnsupportedOperationException(method.getName());
-                });
+    @Test
+    public void newRowUsesFastPathForRowAndInstantiatesCustomRowTypes() {
+        TestRowFactory factory = new TestRowFactory();
+
+        assertEquals(Row.class, factory.create(Row.class).getClass());
+        assertEquals(CustomRow.class, factory.create(CustomRow.class).getClass());
     }
 
-    private Clob clob(String data) {
-        return (Clob) Proxy.newProxyInstance(
-                getClass().getClassLoader(),
-                new Class<?>[]{Clob.class},
-                (proxy, method, args) -> {
-                    if ("length".equals(method.getName())) {
-                        return (long) data.length();
-                    }
-                    if ("getSubString".equals(method.getName())) {
-                        int start = ((Number) args[0]).intValue() - 1;
-                        int length = ((Number) args[1]).intValue();
-                        return data.substring(start, start + length);
-                    }
-                    throw new UnsupportedOperationException(method.getName());
-                });
+    public static class CustomRow extends AifeiRow<CustomRow> {
     }
 
-    private ResultSet resultSet(Object value) {
-        return (ResultSet) Proxy.newProxyInstance(
-                getClass().getClassLoader(),
-                new Class<?>[]{ResultSet.class},
-                (proxy, method, args) -> {
-                    if ("getObject".equals(method.getName()) && args.length == 1) {
-                        return value;
-                    }
-                    throw new UnsupportedOperationException(method.getName());
-                });
+    private static final class TestRowFactory extends RowFactory {
+
+        AifeiRow<?> create(Class<? extends AifeiRow<?>> rowType) {
+            return newRow(rowType);
+        }
     }
 
-    private InputStream oneByteAtATime(byte[] data) {
-        return new InputStream() {
-            private int index;
+    private static final class RecordingDataMapFactory extends DataMapFactory {
 
-            @Override
-            public int read() {
-                return index < data.length ? data[index++] & 0xff : -1;
-            }
+        final List<Map<String, Object>> maps = new ArrayList<>();
 
-            @Override
-            public int read(byte[] target, int offset, int length) {
-                if (index >= data.length) {
-                    return -1;
-                }
-                target[offset] = data[index++];
-                return 1;
-            }
-        };
+        @Override
+        public Map<String, Object> get() {
+            Map<String, Object> result = new LinkedHashMap<>();
+            maps.add(result);
+            return result;
+        }
     }
 
-    private static class TestRowFactory extends RowFactory {
-        Object read(ResultSet rs, int jdbcType) throws Exception {
-            return readValue(rs, 1, jdbcType);
+    private static final class TrackingDialect extends H2Dialect {
+
+        final Object[][] values;
+        final List<Integer> columnIndexes = new ArrayList<>();
+        final List<Integer> jdbcTypes = new ArrayList<>();
+
+        TrackingDialect(Object[][] values) {
+            this.values = values;
         }
 
-        byte[] readBlob(Blob blob) throws Exception {
-            return handleBlob(blob);
+        @Override
+        public Object readColumnValue(ResultSet resultSet, int columnIndex, int jdbcType) {
+            columnIndexes.add(columnIndex);
+            jdbcTypes.add(jdbcType);
+            int callIndex = jdbcTypes.size() - 1;
+            int columnCount = values[0].length;
+            return values[callIndex / columnCount][columnIndex - 1];
+        }
+    }
+
+    private static final class ResultSetFixture implements InvocationHandler {
+
+        final MetadataFixture metadata;
+        final ResultSet proxy;
+        final int rowCount;
+        int cursor;
+        int nextCalls;
+
+        ResultSetFixture(String[] labels, int[] jdbcTypes, int rowCount) {
+            this.metadata = new MetadataFixture(labels, jdbcTypes);
+            this.rowCount = rowCount;
+            this.proxy = (ResultSet) Proxy.newProxyInstance(
+                    RowFactoryTest.class.getClassLoader(), new Class<?>[]{ResultSet.class}, this);
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) {
+            if ("getMetaData".equals(method.getName())) {
+                return metadata.proxy;
+            }
+            if ("next".equals(method.getName())) {
+                nextCalls++;
+                return cursor++ < rowCount;
+            }
+            throw new UnsupportedOperationException(method.getName());
+        }
+    }
+
+    private static final class MetadataFixture implements InvocationHandler {
+
+        final String[] labels;
+        final int[] jdbcTypes;
+        final ResultSetMetaData proxy;
+        final List<Integer> labelCalls = new ArrayList<>();
+        final List<Integer> typeCalls = new ArrayList<>();
+        int columnCountCalls;
+
+        MetadataFixture(String[] labels, int[] jdbcTypes) {
+            this.labels = labels;
+            this.jdbcTypes = jdbcTypes;
+            this.proxy = (ResultSetMetaData) Proxy.newProxyInstance(
+                    RowFactoryTest.class.getClassLoader(), new Class<?>[]{ResultSetMetaData.class}, this);
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws SQLException {
+            if ("getColumnCount".equals(method.getName())) {
+                columnCountCalls++;
+                return labels.length;
+            }
+            int column = ((Number) args[0]).intValue();
+            if ("getColumnLabel".equals(method.getName())) {
+                labelCalls.add(column);
+                return labels[column - 1];
+            }
+            if ("getColumnType".equals(method.getName())) {
+                typeCalls.add(column);
+                return jdbcTypes[column - 1];
+            }
+            throw new UnsupportedOperationException(method.getName());
         }
     }
 }

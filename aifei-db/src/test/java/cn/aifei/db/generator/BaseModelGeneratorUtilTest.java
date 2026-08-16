@@ -41,4 +41,14 @@ public class BaseModelGeneratorUtilTest {
         assertEquals("getTinyValue", getter.get("methodName"));
         assertEquals("get", getter.get("getXxx"));
     }
+
+    @Test
+    public void normalizedIntegerMappingUsesConvertingIntegerGetter() {
+        FieldInfo field = new FieldInfo("small_value", "Integer", "smallValue", null, false);
+
+        Map<String, Object> getter = new BaseModelGeneratorUtil().createGetterItem(null, field);
+
+        assertEquals("getSmallValue", getter.get("methodName"));
+        assertEquals("getInt", getter.get("getXxx"));
+    }
 }
