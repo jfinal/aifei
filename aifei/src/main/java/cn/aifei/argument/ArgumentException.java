@@ -33,13 +33,6 @@ public class ArgumentException extends Exception {
     }
 
     /**
-     * 获取实参对象
-     */
-    public Argument<?, ?, ?> getArgument() {
-        return argument;
-    }
-
-    /**
      * 获取用空格分隔的实参类型和名称，便于向客户端输出异常对应的参数信息
      */
     public String getArgumentInfo() {
@@ -51,6 +44,13 @@ public class ArgumentException extends Exception {
      */
     public String getArgumentInfoAndMessage() {
         return getArgumentInfo() + " -> " + cause.getMessage();
+    }
+
+    /**
+     * 获取实参对象
+     */
+    public Argument<?, ?, ?> getArgument() {
+        return argument;
     }
 
     @Override
