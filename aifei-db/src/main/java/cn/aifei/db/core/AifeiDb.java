@@ -52,7 +52,7 @@ public class AifeiDb {
         } catch (Exception ignored) {}
     }
 
-    private volatile boolean isStarted = false;
+    private volatile boolean started = false;
     private final DbConfig config;
     private final Set<Class<? extends AifeiRow<?>>> modelSet = new LinkedHashSet<>();
 
@@ -242,8 +242,8 @@ public class AifeiDb {
         return this;
     }
 
-    public void start() {
-        if (isStarted) {
+    public synchronized void start() {
+        if (started) {
             return;
         }
 
@@ -251,12 +251,14 @@ public class AifeiDb {
         config.sqlKit.parseSqlFile();   // 解析 enjoy sql 文件
         DbKit.addConfig(config);        // 添加 config
         mappingModelsToDbConfig();      // 映射 models 到 config
-        isStarted = true;
+        started = true;
     }
 
-    public void stop() {
-        DbKit.removeConfig(config.getId());
-        isStarted = false;
+    public synchronized void stop() {
+        if (started) {
+            DbKit.removeConfig(config.getId());
+            started = false;
+        }
     }
 
     /**

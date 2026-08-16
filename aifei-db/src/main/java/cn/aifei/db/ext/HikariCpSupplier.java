@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  */
 public class HikariCpSupplier implements Supplier<DataSource> {
 
-	private volatile boolean isStarted = false;
+	private volatile boolean started = false;
 
 	/**
 	 * jdbc Url
@@ -169,11 +169,11 @@ public class HikariCpSupplier implements Supplier<DataSource> {
 
 	@Override
 	public DataSource get() {
-		return isStarted ? dataSource : start().get();
+		return started ? dataSource : start().get();
 	}
 
 	public synchronized HikariCpSupplier start() {
-		if (isStarted) {
+		if (started) {
 			return this;
 		}
 
@@ -245,7 +245,7 @@ public class HikariCpSupplier implements Supplier<DataSource> {
 		}
 
 		dataSource = new HikariDataSource(config);
-		isStarted = true;
+		started = true;
 		return this;
 	}
 
@@ -254,10 +254,10 @@ public class HikariCpSupplier implements Supplier<DataSource> {
 	}
 
 	public synchronized HikariCpSupplier stop() {
-		if (isStarted) {
+		if (started) {
 			dataSource.close();
 			dataSource = null;
-			isStarted = false;
+			started = false;
 		}
 		return this;
 	}

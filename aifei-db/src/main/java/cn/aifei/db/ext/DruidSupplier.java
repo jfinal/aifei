@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  */
 public class DruidSupplier implements Supplier<DataSource> {
 
-    protected volatile boolean isStarted = false;
+    protected volatile boolean started = false;
     protected DruidDataSource dataSource;
 
     //连接池的名称
@@ -185,11 +185,11 @@ public class DruidSupplier implements Supplier<DataSource> {
      */
     @Override
     public DataSource get() {
-        return isStarted ? dataSource : start().get();
+        return started ? dataSource : start().get();
     }
 
     public synchronized DruidSupplier start() {
-        if (isStarted) {
+        if (started) {
             return this;
         }
 
@@ -276,7 +276,7 @@ public class DruidSupplier implements Supplier<DataSource> {
         addFilterList(dataSource);
 
         checkConnectionOnStart();
-        isStarted = true;
+        started = true;
         return this;
     }
 
@@ -296,10 +296,10 @@ public class DruidSupplier implements Supplier<DataSource> {
     }
 
     public synchronized DruidSupplier stop() {
-        if (isStarted) {
+        if (started) {
             dataSource.close();
             dataSource = null;
-            isStarted = false;
+            started = false;
         }
         return this;
     }
