@@ -31,7 +31,7 @@ import java.util.Map;
  * 再使用 ResultSetMetaData.getColumnType(i) 返回的 JDBC 类型兜底；
  * 两次均未命中时默认使用 java.lang.Object。
  * 若自定义 Dialect 覆盖 readColumnValue(...) 并改变 DATE、TIMESTAMP 或其它
- * JDBC 类型的读取方式，必须同时覆盖 getColumnValueClassName(...)，
+ * JDBC 类型的读取方式，必须同时覆盖 resolveColumnValueClassName(...)，
  * 使类名映射的源类型推断与运行时实际读取路径保持一致。
  *
  * <p>

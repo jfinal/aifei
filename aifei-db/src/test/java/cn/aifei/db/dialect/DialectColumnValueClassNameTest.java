@@ -29,24 +29,24 @@ public class DialectColumnValueClassNameTest {
     @Test
     public void dateAndTimestampFollowTypedRuntimeReaders() throws Exception {
         assertEquals(java.sql.Date.class.getName(),
-                dialect.getColumnValueClassName(metadata(String.class.getName()), 1, Types.DATE));
+                dialect.resolveColumnValueClassName(metadata(String.class.getName()), 1, Types.DATE));
         assertEquals(java.sql.Timestamp.class.getName(),
-                dialect.getColumnValueClassName(metadata(String.class.getName()), 1, Types.TIMESTAMP));
+                dialect.resolveColumnValueClassName(metadata(String.class.getName()), 1, Types.TIMESTAMP));
     }
 
     @Test
     public void otherTypesFollowGetObjectMetadata() throws Exception {
         assertEquals(java.time.LocalTime.class.getName(),
-                dialect.getColumnValueClassName(metadata(java.time.LocalTime.class.getName()), 1, Types.TIME));
+                dialect.resolveColumnValueClassName(metadata(java.time.LocalTime.class.getName()), 1, Types.TIME));
         assertEquals("vendor.TimestampWithTimeZone",
-                dialect.getColumnValueClassName(metadata("vendor.TimestampWithTimeZone"), 1, Types.TIMESTAMP_WITH_TIMEZONE));
+                dialect.resolveColumnValueClassName(metadata("vendor.TimestampWithTimeZone"), 1, Types.TIMESTAMP_WITH_TIMEZONE));
     }
 
     @Test
     public void sqliteBooleanFollowsItsTypedRuntimeReader() throws Exception {
         Dialect sqliteDialect = new SqliteDialect();
         assertEquals(Boolean.class.getName(),
-                sqliteDialect.getColumnValueClassName(metadata(Integer.class.getName()), 1, Types.BOOLEAN));
+                sqliteDialect.resolveColumnValueClassName(metadata(Integer.class.getName()), 1, Types.BOOLEAN));
     }
 
     private ResultSetMetaData metadata(String className) {

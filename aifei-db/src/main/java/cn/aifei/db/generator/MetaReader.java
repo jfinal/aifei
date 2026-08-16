@@ -276,7 +276,7 @@ public class MetaReader {
      * 源类型进行映射；其它 JDBC 类型以 getObject() 对应的 getColumnClassName()
      * 为源类型。默认将 java.sql.Timestamp 映射为 java.util.Date，将 java.sql.Date
      * 保留不变；其它类型由 TypeMapping 的类名映射决定，未命中时按 JDBC 类型兜底。
-     * 上述运行时源类型由 Dialect.getColumnValueClassName(...) 统一提供，
+     * 上述运行时源类型由 Dialect.resolveColumnValueClassName(...) 统一提供，
      * 避免 MetaReader 与 Dialect.readColumnValue(...) 的读取策略脱节。
      */
     protected void readFieldInfo(Connection connection, DatabaseMetaData databaseMetaData, Dialect dialect, List<TableInfo> ret) throws SQLException {
@@ -296,9 +296,9 @@ public class MetaReader {
                     // 而 Dialect 可能使用 getDate()、getTimestamp() 等类型化 getter。
                     // 必须通过 Dialect 使生成阶段的源类型与运行时读取路径保持一致。
                     int jdbcType = rsmd.getColumnType(i);
-                    String runtimeClassName = dialect.getColumnValueClassName(rsmd, i, jdbcType);
+                    String sourceClassName = dialect.resolveColumnValueClassName(rsmd, i, jdbcType);
 
-                    String javaType = typeMapping.getType(runtimeClassName);
+                    String javaType = typeMapping.getType(sourceClassName);
                     if (javaType == null) {
                         javaType = typeMapping.getType(jdbcType);
                     }

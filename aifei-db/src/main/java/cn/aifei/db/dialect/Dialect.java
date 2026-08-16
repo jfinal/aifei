@@ -427,7 +427,7 @@ public abstract class Dialect {
     }
 
     /**
-     * 获取与 {@link #readColumnValue(ResultSet, int, int)} 字段读取策略对应的
+     * 解析与 {@link #readColumnValue(ResultSet, int, int)} 字段读取策略对应的
      * TypeMapping 源 Java 类名。
      *
      * <pre>
@@ -463,7 +463,7 @@ public abstract class Dialect {
      * @see ResultSet#getDate(int)
      * @see ResultSet#getTimestamp(int)
      */
-    public String getColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
+    public String resolveColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
         if (jdbcType == Types.DATE) {
             return java.sql.Date.class.getName();
         } else if (jdbcType == Types.TIMESTAMP) {

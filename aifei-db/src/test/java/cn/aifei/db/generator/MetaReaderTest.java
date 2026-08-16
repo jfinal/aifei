@@ -152,7 +152,7 @@ public class MetaReaderTest {
         int jdbcType;
 
         @Override
-        public String getColumnValueClassName(
+        public String resolveColumnValueClassName(
                 ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) {
             this.jdbcType = jdbcType;
             return "runtime.CustomValue";
