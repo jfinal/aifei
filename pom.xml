@@ -69,7 +69,7 @@
         <hikaricp.version>4.0.3</hikaricp.version>
         <cglib-nodep.version>3.3.0</cglib-nodep.version>
         <javassist.version>3.31.0-GA</javassist.version>
-        <undertow-core.version>2.2.39.Final</undertow-core.version>
+        <undertow-core.version>2.2.40.Final</undertow-core.version>
         <junit.version>4.13.2</junit.version>
     </properties>
 
