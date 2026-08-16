@@ -49,15 +49,7 @@ public class Aifei {
         try {
             doStart(aifeiConfig, args);
         } catch (Throwable t) {
-            try {
-                Log.get(Aifei.class).error("Failed to start Aifei.", t);
-            } catch (Throwable ignored) {
-                try {
-                    System.err.println("Failed to start Aifei.");
-                    t.printStackTrace(System.err);
-                } catch (Throwable ignoredAgain) {
-                }
-            }
+            reportError("Failed to start Aifei.", t);
             System.exit(1);
         }
     }
@@ -163,9 +155,19 @@ public class Aifei {
         long startTime = System.currentTimeMillis();
 
         // 关闭 Server
-        settings.getServer().stop();
+        try {
+            settings.getServer().stop();
+        } catch (Throwable t) {
+            reportError("Failed to stop server.", t);
+        }
+
         // 回调 onStop，仍可使用 plugin
-        aifeiConfig.onStop();
+        try {
+            aifeiConfig.onStop();
+        } catch (Throwable t) {
+            reportError("Failed to invoke AifeiConfig.onStop().", t);
+        }
+
         // 关闭 Plugin
         stopPlugins(plugins);
 
@@ -194,11 +196,19 @@ public class Aifei {
             try {
                 plugin.stop();
             } catch (Throwable t) {
-                try {
-                    Log.get(Aifei.class).error("Failed to stop plugin: " + plugin.getClass().getName(), t);
-                } catch (Throwable ignored) {
-                    // 日志失败不能阻止其他 Plugin 关闭
-                }
+                reportError("Failed to stop plugin: " + plugin.getClass().getName(), t);
+            }
+        }
+    }
+
+    private static void reportError(String message, Throwable t) {
+        try {
+            Log.get(Aifei.class).error(message, t);
+        } catch (Throwable ignored) {
+            try {
+                System.err.println(message);
+                t.printStackTrace(System.err);
+            } catch (Throwable ignoredAgain) {
             }
         }
     }
