@@ -40,7 +40,7 @@ public class Aifei {
     static Plugins plugins;
     static Settings<?, ?> settings;
     static AifeiConfig<?, ?> aifeiConfig;
-    private static volatile boolean started;
+    static volatile boolean started = false;
 
     private Aifei() {}
 
