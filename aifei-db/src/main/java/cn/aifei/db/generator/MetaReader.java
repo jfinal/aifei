@@ -276,6 +276,8 @@ public class MetaReader {
      * 源类型进行映射；其它 JDBC 类型以 getObject() 对应的 getColumnClassName()
      * 为源类型。默认将 java.sql.Timestamp 映射为 java.util.Date，将 java.sql.Date
      * 保留不变；其它类型由 TypeMapping 的类名映射决定，未命中时按 JDBC 类型兜底。
+     * 上述运行时源类型由 Dialect.getColumnValueClassName(...) 统一提供，
+     * 避免 MetaReader 与 Dialect.readColumnValue(...) 的读取策略脱节。
      */
     protected void readFieldInfo(Connection connection, DatabaseMetaData databaseMetaData, Dialect dialect, List<TableInfo> ret) throws SQLException {
         for (TableInfo tableInfo : ret) {
@@ -290,19 +292,11 @@ public class MetaReader {
                     // 获取 fieldName
                     String fieldName = rsmd.getColumnName(i).trim();   // getColumnName 返回字段真名而并非 as 指定的别名
 
-                    // DATE、TIMESTAMP 按 Dialect 默认调用的 getDate()、getTimestamp() 确定类型；
-                    // 其它类型按 getObject() 对应的 getColumnClassName() 映射，未命中再按 JDBC 类型兜底。
-                    // SQLite 的空结果集可能将类名报告为 Object，动态或自定义类型仍可能需要定制映射。
-                    // JDBC 类型不能保证驱动已转换厂商对象，因此不据此推断带时区的 Java 类型。
+                    // 不能直接使用 getColumnClassName()：它只对应 getObject() 的返回类型，
+                    // 而 Dialect 可能使用 getDate()、getTimestamp() 等类型化 getter。
+                    // 必须通过 Dialect 使生成阶段的源类型与运行时读取路径保持一致。
                     int jdbcType = rsmd.getColumnType(i);
-                    String runtimeClassName;
-                    if (jdbcType == Types.DATE) {
-                        runtimeClassName = java.sql.Date.class.getName();
-                    } else if (jdbcType == Types.TIMESTAMP) {
-                        runtimeClassName = java.sql.Timestamp.class.getName();
-                    } else {
-                        runtimeClassName = rsmd.getColumnClassName(i);
-                    }
+                    String runtimeClassName = dialect.getColumnValueClassName(rsmd, i);
 
                     String javaType = typeMapping.getType(runtimeClassName);
                     if (javaType == null) {

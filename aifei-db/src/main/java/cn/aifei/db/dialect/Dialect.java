@@ -427,6 +427,51 @@ public abstract class Dialect {
     }
 
     /**
+     * 获取与 {@link #readColumnValue(ResultSet, int, int)} 字段读取策略对应的
+     * TypeMapping 源 Java 类名。
+     *
+     * <pre>
+     * 这里不能对所有字段都直接返回 ResultSetMetaData.getColumnClassName(int)。
+     * JDBC 规范中 getColumnClassName(int) 只描述 ResultSet.getObject(int) 所返回的对象类型，
+     * 它不描述 getDate(int)、getTimestamp(int) 等类型化 getter 的返回类型。
+     *
+     * Dialect 默认对 JDBC DATE、TIMESTAMP 分别调用 getDate(int)、getTimestamp(int)，
+     * 因此这两种类型必须分别返回 java.sql.Date、java.sql.Timestamp 的类名。
+     * 其它 JDBC 类型由 readColumnValue(...) 通过 getObject(int) 读取，才应该使用
+     * getColumnClassName(int) 作为源类名。Blob、Clob 等类型可在读取后被物化，
+     * 它们由 TypeMapping 将该源类名进一步映射为最终生成类型。
+     *
+     * 例如 MySQL Connector/J 将 DATETIME 报告为 JDBC TIMESTAMP，但其
+     * getColumnClassName(int) 可能返回 java.time.LocalDateTime。Aifei 运行时依据
+     * JDBC TIMESTAMP 调用 getTimestamp(int)，实际存入 Row 的是 java.sql.Timestamp。
+     * 当前 TypeMapping 恰好可能将这两个源类型映射成同一目标类型，但这不能
+     * 证明两个源类型相同；一旦用户定制 TypeMapping 或驱动行为变化，差异就会显现。
+     *
+     * 本方法的核心目的是保证：生成阶段用来匹配 TypeMapping 的源类型，
+     * 与运行阶段 readColumnValue(...) 的实际读取路径保持一致，进而使最终
+     * 生成类型与存入 Row 的值兼容。
+     *
+     * 如果子类覆盖 readColumnValue(...) 并改变了某种 JDBC 类型的读取方式，
+     * 必须同时覆盖本方法，使生成阶段与运行阶段继续保持一致。
+     * </pre>
+     *
+     * @see ResultSetMetaData#getColumnClassName(int)
+     * @see ResultSet#getObject(int)
+     * @see ResultSet#getDate(int)
+     * @see ResultSet#getTimestamp(int)
+     */
+    public String getColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex) throws SQLException {
+        int jdbcType = resultSetMetaData.getColumnType(columnIndex);
+        if (jdbcType == Types.DATE) {
+            return java.sql.Date.class.getName();
+        } else if (jdbcType == Types.TIMESTAMP) {
+            return java.sql.Timestamp.class.getName();
+        } else {
+            return resultSetMetaData.getColumnClassName(columnIndex);
+        }
+    }
+
+    /**
      * 从 ResultSet 读取字段值。
      *
      * <pre>

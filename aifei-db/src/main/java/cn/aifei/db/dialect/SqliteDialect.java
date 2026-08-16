@@ -19,6 +19,7 @@ package cn.aifei.db.dialect;
 import cn.aifei.db.core.SqlPara;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
@@ -49,6 +50,19 @@ public class SqliteDialect extends Dialect {
 				pst.setObject(i + 1, paras.get(i));
 			}
 		}
+	}
+
+	/**
+	 * SQLite BOOLEAN 的 getObject(int) 可能返回 Integer，但本 Dialect 运行时使用
+	 * getBoolean(int) 并返回 Boolean。因此生成阶段必须同样使用 Boolean 作为
+	 * TypeMapping 的源类型，不能直接使用 getColumnClassName(int) 报告的 getObject 类型。
+	 */
+	@Override
+	public String getColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex) throws SQLException {
+		if (resultSetMetaData.getColumnType(columnIndex) == Types.BOOLEAN) {
+			return Boolean.class.getName();
+		}
+		return super.getColumnValueClassName(resultSetMetaData, columnIndex);
 	}
 
 	@Override
