@@ -54,14 +54,25 @@ public class TypeMapping {
 		// 普通 java.util.Date 表示毫秒精度的时间点，保持原类型
 		put("java.util.Date", "java.util.Date");
 
+		// Dialect 默认对 TIMESTAMP 使用 getTimestamp() 读取；生成类型为 java.util.Date，运行时值仍为 Timestamp
+		put("java.sql.Timestamp", "java.util.Date");
+
+		/*
+		 * DATE/TIMESTAMP 的默认路径已由 MetaReader 按 getDate()/getTimestamp()
+		 * 的返回类型处理。以下映射适用于其它通过 getObject() 读取、并在元数据中
+		 * 明确报告 Java 8 日期时间类的字段。LocalDateTime 由生成 getter 通过
+		 * TypeConverter 转换成 Timestamp，按 JDBC 本地日期时间语义保留字段与纳秒。
+		 */
+		put("java.time.LocalDateTime", "java.util.Date");
+
+		// --------------------------------------------------------------------
+		// --------------------------------------------------------------------
+
 		// Dialect 默认对 DATE 使用 getDate() 读取，生成类型与运行时值保持一致
 		put("java.sql.Date", "java.sql.Date");
 
 		// Dialect 默认对 TIME 使用 getObject() 读取；元数据报告 java.sql.Time 时保持原类型
 		put("java.sql.Time", "java.sql.Time");
-
-		// Dialect 默认对 TIMESTAMP 使用 getTimestamp() 读取；生成类型为 java.util.Date，运行时值仍为 Timestamp
-		put("java.sql.Timestamp", "java.util.Date");
 
 		// binary, varbinary, tinyblob, blob, mediumblob, longblob
 		// qjd project: print_info.content varbinary(61800);
@@ -104,18 +115,10 @@ public class TypeMapping {
 		// Byte is normalized to Integer for the same reason as Short
 		put("java.lang.Byte", "java.lang.Integer");
 
-		/*
-		 * DATE/TIMESTAMP 的默认路径已由 MetaReader 按 getDate()/getTimestamp()
-		 * 的返回类型处理。以下映射适用于其它通过 getObject() 读取、并在元数据中
-		 * 明确报告 Java 8 日期时间类的字段。LocalDateTime 由生成 getter 通过
-		 * TypeConverter 转换成 Timestamp，按 JDBC 本地日期时间语义保留字段与纳秒。
-		 */
-		put("java.time.LocalDateTime", "java.util.Date");
-		put("java.time.LocalDate", "java.time.LocalDate");
-
 		// LocalTime 保持与 getObject() 返回值一致，避免生成 java.sql.Time getter 后强转失败
 		// 不将 LocalTime 降格转换为 java.sql.Time，以免丢失纳秒精度
 		put("java.time.LocalTime", "java.time.LocalTime");
+		put("java.time.LocalDate", "java.time.LocalDate");
 
 		/*
 		 * getColumnClassName() 与无类型参数的 getObject() 是 JDBC 规范中的配套契约。
@@ -163,6 +166,22 @@ public class TypeMapping {
 	// ---------------------------------------------------------------------------------------
 
 	protected Map<Integer, String> jdbcTypeToJavaType = new HashMap<Integer, String>(64) {{
+		// 类名映射未命中时的兜底类型：DATE/TIMESTAMP 对齐 Dialect 默认的类型化读取，
+		put(Types.TIMESTAMP, java.util.Date.class.getName());
+
+		// --------------------------------------------------------------------
+		// --------------------------------------------------------------------
+
+		put(Types.TIME, java.sql.Time.class.getName());
+		put(Types.DATE, java.sql.Date.class.getName());
+
+		/*
+		 * 不要在此将 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 兜底映射成 Offset 类型。
+		 * 例如 H2 1.4 默认对 TIMESTAMP_WITH_TIMEZONE 返回
+		 * org.h2.api.TimestampWithTimeZone，而 Dialect 默认保留 getObject() 的返回类型。
+		 * 类名未命中时退回 Object，比生成一个无法安全强转的 Offset getter 更可靠。
+		 */
+
 		put(Types.TINYINT, Integer.class.getName());
 		put(Types.SMALLINT, Integer.class.getName());
 		put(Types.INTEGER, Integer.class.getName());
@@ -178,19 +197,6 @@ public class TypeMapping {
 
 		put(Types.BIT, Boolean.class.getName());
 		put(Types.BOOLEAN, Boolean.class.getName());
-
-		// 类名映射未命中时的兜底类型：DATE/TIMESTAMP 对齐 Dialect 默认的类型化读取，
-		// TIME 使用 JDBC 传统映射 java.sql.Time
-		put(Types.TIMESTAMP, java.util.Date.class.getName());
-		put(Types.DATE, java.sql.Date.class.getName());
-		put(Types.TIME, java.sql.Time.class.getName());
-
-		/*
-		 * 不要在此将 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 兜底映射成 Offset 类型。
-		 * 例如 H2 1.4 默认对 TIMESTAMP_WITH_TIMEZONE 返回
-		 * org.h2.api.TimestampWithTimeZone，而 Dialect 默认保留 getObject() 的返回类型。
-		 * 类名未命中时退回 Object，比生成一个无法安全强转的 Offset getter 更可靠。
-		 */
 
 		put(Types.BINARY, "byte[]");
 		put(Types.VARBINARY, "byte[]");
