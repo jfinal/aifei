@@ -30,8 +30,9 @@ import java.util.Map;
  * ResultSetMetaData.getColumnClassName(i) 返回的类名。类名映射未命中时，
  * 再使用 ResultSetMetaData.getColumnType(i) 返回的 JDBC 类型兜底；
  * 两次均未命中时默认使用 java.lang.Object。
- * 若自定义 Dialect 改变 DATE 或 TIMESTAMP 的运行时返回类型，需要同步
- * 调整上述类名键的映射，或定制 MetaReader 的类型推断。
+ * 若自定义 Dialect 覆盖 readColumnValue(...) 并改变 DATE、TIMESTAMP 或其它
+ * JDBC 类型的读取方式，必须同时覆盖 getColumnValueClassName(...)，
+ * 使类名映射的源类型推断与运行时实际读取路径保持一致。
  *
  * <p>
  * 带时区类型只按 getColumnClassName(i) 返回的 OffsetDateTime/OffsetTime 类名映射，
@@ -74,6 +75,11 @@ public class TypeMapping {
 		// Dialect 默认对 TIME 使用 getObject() 读取；元数据报告 java.sql.Time 时保持原类型
 		put("java.sql.Time", "java.sql.Time");
 
+		// LocalTime 保持与 getObject() 返回值一致，避免生成 java.sql.Time getter 后强转失败
+		// 不将 LocalTime 降格转换为 java.sql.Time，以免丢失纳秒精度
+		put("java.time.LocalTime", "java.time.LocalTime");
+		put("java.time.LocalDate", "java.time.LocalDate");
+
 		// binary, varbinary, tinyblob, blob, mediumblob, longblob
 		// qjd project: print_info.content varbinary(61800);
 		put("[B", "byte[]");
@@ -114,11 +120,6 @@ public class TypeMapping {
 
 		// Byte is normalized to Integer for the same reason as Short
 		put("java.lang.Byte", "java.lang.Integer");
-
-		// LocalTime 保持与 getObject() 返回值一致，避免生成 java.sql.Time getter 后强转失败
-		// 不将 LocalTime 降格转换为 java.sql.Time，以免丢失纳秒精度
-		put("java.time.LocalTime", "java.time.LocalTime");
-		put("java.time.LocalDate", "java.time.LocalDate");
 
 		/*
 		 * getColumnClassName() 与无类型参数的 getObject() 是 JDBC 规范中的配套契约。
