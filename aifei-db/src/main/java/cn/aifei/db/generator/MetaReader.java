@@ -25,7 +25,7 @@ import java.util.*;
 import java.util.function.Predicate;
 
 /**
- * MetaReader 读取数据库 table meta 信息
+ * MetaReader 读取数据库表及字段元数据。
  */
 public class MetaReader {
 
@@ -98,7 +98,7 @@ public class MetaReader {
     }
 
     /**
-     * lambda 实现 table 过滤。用于待处理 table 数量比较少的场景
+     * 配置 table 过滤器。适用于待处理 table 数量比较少的场景
      */
     public MetaReader filter(Predicate<String> tableFilter) {
         this.tableFilter = tableFilter;
@@ -106,7 +106,7 @@ public class MetaReader {
     }
 
     /**
-     * lambda 实现 table 跳过/忽略。用于被忽略 table 数量比较少的场景
+     * 配置 table 跳过规则。适用于被忽略 table 数量比较少的场景
      */
     public MetaReader skip(Predicate<String> tableSkip) {
         this.tableSkip = tableSkip;
@@ -163,7 +163,7 @@ public class MetaReader {
      * <p>
      * 3: 跳过黑名单中包含的 table，未跳过则进入下一个流程
      * <p>
-     * 4: 跳过 tableSkip 选中的 table，未跳过则进入下一个流程
+     * 4: 跳过 tableSkip 选中的 table，未跳过则处理该 table
      */
     private boolean shouldProcess(String table) {
         // 若存在白名单，则根据 table 是否在白名单之内决定是否处理
@@ -206,10 +206,9 @@ public class MetaReader {
 
     /**
      * 不同数据库 databaseMetaData.getTables(...) 的 schemaPattern 参数意义不同
-     * 1：oracle 数据库这个参数代表 databaseMetaData.getUserName()
-     * 2：postgresql 数据库中需要在 jdbcUrl中配置 schemaPatter，例如：
+     * 1：Oracle 使用 databaseMetaData.getUserName() 作为 schemaPattern
+     * 2：PostgreSQL 可在 JDBC URL 中通过 currentSchema 配置 schema 搜索顺序，例如：
      *   jdbc:postgresql://localhost:15432/djpt?currentSchema=public,sys,app
-     *   最后的参数就是搜索schema的顺序，DruidPlugin 下测试成功
      * 3：开发者若在其它库中发现工作不正常，可通过继承 MetaReader 并覆盖此方法来实现功能
      */
     protected void readTableInfo(Connection connection, DatabaseMetaData databaseMetaData, Dialect dialect, List<TableInfo> ret) throws SQLException {
@@ -252,7 +251,7 @@ public class MetaReader {
             String lastValue = "";
             while (rs.next()) {
                 String columnName = rs.getString("COLUMN_NAME");
-                // 避免 oracle 驱动的 bug 生成重复主键，如：ID,ID
+                // 避免 Oracle 驱动的 bug 生成重复主键，如：ID,ID
                 if (!lastValue.equals(columnName) && StrUtil.notBlank(columnName)) {
                     ret.add(columnName.trim());
                     lastValue = columnName.trim();
@@ -264,16 +263,19 @@ public class MetaReader {
 
     /**
      * 文档参考：
-     * http://dev.mysql.com/doc/connector-j/en/connector-j-reference-type-conversions.html
+     * https://dev.mysql.com/doc/connector-j/en/connector-j-reference-type-conversions.html
      *
-     * JDBC 与时间有关类型转换规则，mysql 类型到 java 类型如下对应关系：
+     * Connector/J 对时间类型报告的 getColumnClassName() 如下：
      * DATE				java.sql.Date
      * DATETIME			java.time.LocalDateTime
      * TIMESTAMP[(M)]	java.sql.Timestamp
      * TIME				java.sql.Time
      *
-     * 对数据库的 DATE、DATETIME、TIMESTAMP、TIME 四种类型注入 new java.util.Date()对象保存到库以后可以达到“秒精度”
-     * 为了便捷性，getter、setter 方法中对上述四种字段类型采用 java.util.Date，可通过定制 TypeMapping 改变此映射规则
+     * 生成类型需要与默认运行时读取方式一致：JDBC DATE、TIMESTAMP 分别使用
+     * getDate()、getTimestamp()，因此以 java.sql.Date、java.sql.Timestamp 作为
+     * 源类型进行映射；其它 JDBC 类型以 getObject() 对应的 getColumnClassName()
+     * 为源类型。默认将 java.sql.Timestamp 映射为 java.util.Date，将 java.sql.Date
+     * 保留不变；其它类型由 TypeMapping 的类名映射决定，未命中时按 JDBC 类型兜底。
      */
     protected void readFieldInfo(Connection connection, DatabaseMetaData databaseMetaData, Dialect dialect, List<TableInfo> ret) throws SQLException {
         for (TableInfo tableInfo : ret) {
@@ -288,16 +290,23 @@ public class MetaReader {
                     // 获取 fieldName
                     String fieldName = rsmd.getColumnName(i).trim();   // getColumnName 返回字段真名而并非 as 指定的别名
 
-                    // getColumnClassName() 表示无类型参数 getObject() 实际返回的 Java 类型，
-                    // 并且与 RowFactory 的默认取值方式直接配套，故优先使用。
-                    // 类名未命中映射时，再使用 getColumnType() 返回的 JDBC 类型兜底。
-                    // 注意：JDBC 类型兜底不能假定驱动已将厂商对象转成另一个 Java 类型；
-                    // TypeMapping 因此不会将时区 JDBC 类型兜底映射成 OffsetDateTime/OffsetTime。
-                    String fieldClassName = rsmd.getColumnClassName(i);
-                    String javaType = typeMapping.getType(fieldClassName);
+                    // DATE、TIMESTAMP 按 Dialect 默认调用的 getDate()、getTimestamp() 确定类型；
+                    // 其它类型按 getObject() 对应的 getColumnClassName() 映射，未命中再按 JDBC 类型兜底。
+                    // SQLite 的空结果集可能将类名报告为 Object，动态或自定义类型仍可能需要定制映射。
+                    // JDBC 类型不能保证驱动已转换厂商对象，因此不据此推断带时区的 Java 类型。
+                    int jdbcType = rsmd.getColumnType(i);
+                    String runtimeClassName;
+                    if (jdbcType == Types.DATE) {
+                        runtimeClassName = java.sql.Date.class.getName();
+                    } else if (jdbcType == Types.TIMESTAMP) {
+                        runtimeClassName = java.sql.Timestamp.class.getName();
+                    } else {
+                        runtimeClassName = rsmd.getColumnClassName(i);
+                    }
+
+                    String javaType = typeMapping.getType(runtimeClassName);
                     if (javaType == null) {
-                        int type = rsmd.getColumnType(i);
-                        javaType = typeMapping.getType(type);   // 通过 int 型 type 再取一次
+                        javaType = typeMapping.getType(jdbcType);
                     }
 
                     if (javaType == null) {
@@ -335,12 +344,12 @@ public class MetaReader {
     }
 
     /**
-     * handleJavaType(...) 方法是用于处理 java 类型的回调方法，当 aifei-db 默认
-     * 处理规则无法满足需求时，用户可以通过继承 MetaReader 并覆盖此方法定制自己的
-     * 类型转换规则
+     * Java 类型细化扩展点。默认规则无法满足需求时，可继承 MetaReader 并覆盖此方法。
      *
-     * 当前实现只处理了 Oracle 数据库的 NUMBER 类型，根据精度与小数位数转换成 Integer、
-     * Long、BigDecimal。其它数据库直接返回原值 typeStr
+     * 当前实现只细化 Oracle 中初始映射为 BigDecimal 的字段；其它数据库直接返回 javaType。
+     *
+     * scale 为 0 时，precision 不超过 9 映射为 Integer，不超过 18 映射为 Long，
+     * 其余情况映射为 BigDecimal；scale 非 0 时映射为 BigDecimal。
      *
      * Oracle 数据库 number 类型对应 java 类型：
      *  1：如果不指定number的长度，或指定长度 n > 18
@@ -371,7 +380,7 @@ public class MetaReader {
                     javaType = "java.math.BigDecimal";
                 }
             } else {
-                // 非整数都采用 BigDecimal 类型，需要转成 double 的可以覆盖并改写下面的代码
+                // 非整数均使用 BigDecimal；如需 Double 等类型可覆盖 handleJavaType(...)
                 javaType = "java.math.BigDecimal";
             }
         }
