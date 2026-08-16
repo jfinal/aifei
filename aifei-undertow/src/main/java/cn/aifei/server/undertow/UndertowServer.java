@@ -132,9 +132,7 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
             started = true;
 
         } catch (Exception e) {
-            e.printStackTrace(System.err);
-            // 支持在 doStart() 中抛出异常后退出 JVM，例如端口被占用，否则在 linux 控制台 JVM 并不会退出
-            System.exit(1);
+            throw new IllegalStateException("Failed to start Undertow server.", e);
         }
     }
 

@@ -40,11 +40,15 @@ public class Aifei {
     static Plugins plugins;
     static Settings<?, ?> settings;
     static AifeiConfig<?, ?> aifeiConfig;
+    private static volatile boolean started;
 
     private Aifei() {}
 
     public static <I extends Input, O extends Output> void start(AifeiConfig<I, O> aifeiConfig, String[] args) {
         Objects.requireNonNull(aifeiConfig, "aifeiConfig can not be null.");
+        if (started) {
+            throw new IllegalStateException("Aifei already started.");
+        }
 
         try {
             doStart(aifeiConfig, args);
@@ -94,6 +98,7 @@ public class Aifei {
 
         // 启动 Server
         settings.getServer().start();
+        started = true;
         String timeSpent = getTimeSpent(startTime);
 
         /*
@@ -131,7 +136,7 @@ public class Aifei {
                     arg = arg.trim().substring(2);
 
                     if (arg.contains("=")) {
-                        String[] parts = arg.split("=");
+                        String[] parts = arg.split("=", 2);
                         if (parts.length != 2 || StrUtil.isBlank(parts[0]) || StrUtil.isBlank(parts[1])) {
                             throw new IllegalArgumentException("Invalid argument syntax: \"" + originalArg + "\"");
                         }
@@ -150,7 +155,12 @@ public class Aifei {
         }
     }
 
-    public static void stop() {
+    public static synchronized void stop() {
+        if (!started) {
+            return;
+        }
+        started = false;
+
         System.out.println("Stopping Aifei " + VERSION);
         long startTime = System.currentTimeMillis();
 
