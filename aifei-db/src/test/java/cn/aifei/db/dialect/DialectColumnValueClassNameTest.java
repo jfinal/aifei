@@ -51,6 +51,18 @@ public class DialectColumnValueClassNameTest {
     }
 
     @Test
+    public void sqliteFloatingPointTypesFollowDoubleRuntimeValues() throws Exception {
+        Dialect sqliteDialect = new SqliteDialect();
+
+        assertEquals(Double.class.getName(),
+                sqliteDialect.resolveColumnValueClassName(metadata(Object.class.getName()), 1, Types.REAL));
+        assertEquals(Double.class.getName(),
+                sqliteDialect.resolveColumnValueClassName(metadata(Object.class.getName()), 1, Types.FLOAT));
+        assertEquals(Double.class.getName(),
+                sqliteDialect.resolveColumnValueClassName(metadata(Object.class.getName()), 1, Types.DOUBLE));
+    }
+
+    @Test
     public void oracleNumberUsesPrecisionAndScale() throws Exception {
         Dialect oracleDialect = new OracleDialect();
 

@@ -19,6 +19,7 @@ package cn.aifei.db.generator;
 import cn.aifei.db.dialect.Dialect;
 import cn.aifei.db.dialect.H2Dialect;
 import cn.aifei.db.dialect.OracleDialect;
+import cn.aifei.db.dialect.SqliteDialect;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationHandler;
@@ -88,6 +89,19 @@ public class MetaReaderTest {
         assertEquals("Integer", fields.get(1).javaType);
         assertEquals("byte[]", fields.get(2).javaType);
         assertEquals("Object", fields.get(3).javaType);
+    }
+
+    @Test
+    public void sqliteFloatingPointTypesGenerateDoubleFromEmptyResultMetadata() throws Exception {
+        TestMetaReader reader = new TestMetaReader();
+        List<FieldInfo> fields = reader.readFields(new SqliteDialect(),
+                column("real_value", Object.class.getName(), Types.REAL),
+                column("float_value", Object.class.getName(), Types.FLOAT),
+                column("double_value", Object.class.getName(), Types.DOUBLE));
+
+        assertEquals("Double", fields.get(0).javaType);
+        assertEquals("Double", fields.get(1).javaType);
+        assertEquals("Double", fields.get(2).javaType);
     }
 
     @Test

@@ -56,11 +56,17 @@ public class SqliteDialect extends Dialect {
 	 * SQLite BOOLEAN 的 getObject(int) 可能返回 Integer，但本 Dialect 运行时使用
 	 * getBoolean(int) 并返回 Boolean。因此生成阶段必须同样使用 Boolean 作为
 	 * TypeMapping 的源类型，不能直接使用 getColumnClassName(int) 报告的 getObject 类型。
+	 *
+	 * SQLite 的 REAL storage class 始终使用 8 字节 IEEE 浮点数，Xerial JDBC 的
+	 * getObject(int) 返回 Double。代码生成使用空结果集读取元数据时，驱动可能将
+	 * getColumnClassName(int) 报告为 Object，因此需要在这里明确浮点类型的运行时类型。
 	 */
 	@Override
 	public String resolveColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
 		if (jdbcType == Types.BOOLEAN) {
 			return Boolean.class.getName();
+		} else if (jdbcType == Types.REAL || jdbcType == Types.FLOAT || jdbcType == Types.DOUBLE) {
+			return Double.class.getName();
 		}
 		return super.resolveColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
 	}

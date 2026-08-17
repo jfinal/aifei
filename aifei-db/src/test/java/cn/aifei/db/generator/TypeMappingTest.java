@@ -75,8 +75,6 @@ public class TypeMappingTest {
     public void jdbcFallbackCoversNumericTextLobAndStandardObjectFamilies() {
         assertEquals(Long.class.getName(), mapping.getType(Types.BIGINT));
         assertEquals(java.math.BigDecimal.class.getName(), mapping.getType(Types.NUMERIC));
-        assertEquals(Float.class.getName(), mapping.getType(Types.REAL));
-        assertEquals(Double.class.getName(), mapping.getType(Types.FLOAT));
         assertEquals(Boolean.class.getName(), mapping.getType(Types.BOOLEAN));
 
         assertEquals("byte[]", mapping.getType(Types.LONGVARBINARY));
@@ -92,6 +90,13 @@ public class TypeMappingTest {
         assertEquals(java.sql.ResultSet.class.getName(), mapping.getType(Types.REF_CURSOR));
         assertEquals(URL.class.getName(), mapping.getType(Types.DATALINK));
         assertEquals(Object.class.getName(), mapping.getType(Types.OTHER));
+    }
+
+    @Test
+    public void approximateNumericJdbcFallbackUsesRecommendedObjectMappings() {
+        assertEquals(Float.class.getName(), mapping.getType(Types.REAL));
+        assertEquals(Double.class.getName(), mapping.getType(Types.FLOAT));
+        assertEquals(Double.class.getName(), mapping.getType(Types.DOUBLE));
     }
 
     @Test

@@ -192,6 +192,20 @@ public class TypeMapping {
 		put(Types.NUMERIC, java.math.BigDecimal.class.getName());
 		put(Types.DECIMAL, java.math.BigDecimal.class.getName());
 
+		/*
+		 * JDBC 对 ResultSet.getObject(...) 的推荐 Java 对象映射是：
+		 * REAL -> Float，FLOAT -> Double，DOUBLE -> Double。
+		 * JDBC FLOAT 不能按名称直觉等同于 Java float，请勿交换下面两个映射。
+		 *
+		 * JDBC 4.2 规范附录 B（Data Type Conversion Tables）：
+		 * https://download.oracle.com/otndocs/jcp/jdbc-4_2-mrel2-spec/index.html
+		 * Oracle JDBC 类型映射说明（8.3.8、8.3.10、8.9.3）：
+		 * https://docs.oracle.com/javase/1.5.0/docs/guide/jdbc/getstart/mapping.html
+		 *
+		 * 这里仅在 getColumnClassName(...) 的类名映射未命中时兜底。数据库行为
+		 * 偏离 JDBC 映射时，应由对应 Dialect.resolveColumnValueClassName(...)
+		 * 按实际运行时返回类型处理，例如 SQLite 将 REAL 明确解析为 Double。
+		 */
 		put(Types.REAL, Float.class.getName());
 		put(Types.FLOAT, Double.class.getName());
 		put(Types.DOUBLE, Double.class.getName());
