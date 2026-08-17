@@ -55,37 +55,6 @@ public class OracleDialect extends Dialect {
     }
 
     /**
-     * Oracle NUMBER 默认由 JDBC 驱动报告为 BigDecimal，这里根据精度与小数位数
-     * 进一步解析代码生成阶段使用的 Java 类型。
-     *
-     * scale 为 0 时，precision 不超过 9 映射为 Integer，不超过 18 映射为 Long，
-     * 其余情况映射为 BigDecimal；scale 非 0 时映射为 BigDecimal。
-     *
-     * Oracle 数据库 NUMBER 类型对应 Java 类型：
-     *  1：如果不指定 NUMBER 的长度，或指定长度 n > 18，映射为 java.math.BigDecimal
-     *  2：如果 NUMBER 的长度在 10 <= n <= 18，映射为 java.lang.Long
-     *  3：如果 NUMBER 的长度在 1 <= n <= 9，映射为 java.lang.Integer
-     *
-     * 社区分享：《Oracle NUMBER 类型映射改进》https://jfinal.com/share/1145
-     */
-    @Override
-    public String resolveColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
-        String className = super.resolveColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
-        if ("java.math.BigDecimal".equals(className)) {
-            int scale = resultSetMetaData.getScale(columnIndex);
-            if (scale == 0) {
-                int precision = resultSetMetaData.getPrecision(columnIndex);
-                if (precision <= 9) {
-                    return "java.lang.Integer";
-                } else if (precision <= 18) {
-                    return "java.lang.Long";
-                }
-            }
-        }
-        return className;
-    }
-
-    /**
      * oracle 返回生成主键值的 prepareStatement 方式与其它数据库不同
      */
     @Override
@@ -174,6 +143,37 @@ public class OracleDialect extends Dialect {
         ret.append(" ) row_ WHERE rownum <= ").append(end).append(") table_alias");
         ret.append(" WHERE table_alias.rownum_ > ").append(start);
         return new SqlPara(ret.toString(), sqlPara.getPara());
+    }
+
+    /**
+     * Oracle NUMBER 默认由 JDBC 驱动报告为 BigDecimal，这里根据精度与小数位数
+     * 进一步解析代码生成阶段使用的 Java 类型。
+     *
+     * scale 为 0 时，precision 不超过 9 映射为 Integer，不超过 18 映射为 Long，
+     * 其余情况映射为 BigDecimal；scale 非 0 时映射为 BigDecimal。
+     *
+     * Oracle 数据库 NUMBER 类型对应 Java 类型：
+     *  1：如果不指定 NUMBER 的长度，或指定长度 n > 18，映射为 java.math.BigDecimal
+     *  2：如果 NUMBER 的长度在 10 <= n <= 18，映射为 java.lang.Long
+     *  3：如果 NUMBER 的长度在 1 <= n <= 9，映射为 java.lang.Integer
+     *
+     * 社区分享：《Oracle NUMBER 类型映射改进》https://jfinal.com/share/1145
+     */
+    @Override
+    public String resolveColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
+        String className = super.resolveColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
+        if ("java.math.BigDecimal".equals(className)) {
+            int scale = resultSetMetaData.getScale(columnIndex);                // 小数点右边的位数，值为 0 表示整数
+            if (scale == 0) {
+                int precision = resultSetMetaData.getPrecision(columnIndex);    // 最大精度
+                if (precision <= 9) {
+                    return "java.lang.Integer";
+                } else if (precision <= 18) {
+                    return "java.lang.Long";
+                }
+            }
+        }
+        return className;
     }
 }
 
