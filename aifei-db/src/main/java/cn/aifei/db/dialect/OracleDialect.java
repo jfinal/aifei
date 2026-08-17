@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,37 @@ public class OracleDialect extends Dialect {
     @Override
     public String queryTableInfo(String tableName) {
         return "SELECT * FROM " + quoteLeft() + tableName.trim() + quoteRight() + " WHERE rownum < 1";
+    }
+
+    /**
+     * Oracle NUMBER 默认由 JDBC 驱动报告为 BigDecimal，这里根据精度与小数位数
+     * 进一步解析代码生成阶段使用的 Java 类型。
+     *
+     * scale 为 0 时，precision 不超过 9 映射为 Integer，不超过 18 映射为 Long，
+     * 其余情况映射为 BigDecimal；scale 非 0 时映射为 BigDecimal。
+     *
+     * Oracle 数据库 NUMBER 类型对应 Java 类型：
+     *  1：如果不指定 NUMBER 的长度，或指定长度 n > 18，映射为 java.math.BigDecimal
+     *  2：如果 NUMBER 的长度在 10 <= n <= 18，映射为 java.lang.Long
+     *  3：如果 NUMBER 的长度在 1 <= n <= 9，映射为 java.lang.Integer
+     *
+     * 社区分享：《Oracle NUMBER 类型映射改进》https://jfinal.com/share/1145
+     */
+    @Override
+    public String resolveColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
+        String className = super.resolveColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
+        if ("java.math.BigDecimal".equals(className)) {
+            int scale = resultSetMetaData.getScale(columnIndex);
+            if (scale == 0) {
+                int precision = resultSetMetaData.getPrecision(columnIndex);
+                if (precision <= 9) {
+                    return "java.lang.Integer";
+                } else if (precision <= 18) {
+                    return "java.lang.Long";
+                }
+            }
+        }
+        return className;
     }
 
     /**
@@ -144,6 +176,4 @@ public class OracleDialect extends Dialect {
         return new SqlPara(ret.toString(), sqlPara.getPara());
     }
 }
-
-
 

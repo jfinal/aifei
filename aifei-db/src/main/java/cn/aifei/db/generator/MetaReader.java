@@ -339,46 +339,8 @@ public class MetaReader {
 
     /**
      * Java 类型细化扩展点。默认规则无法满足需求时，可继承 MetaReader 并覆盖此方法。
-     *
-     * 当前实现只细化 Oracle 中初始映射为 BigDecimal 的字段；其它数据库直接返回 javaType。
-     *
-     * scale 为 0 时，precision 不超过 9 映射为 Integer，不超过 18 映射为 Long，
-     * 其余情况映射为 BigDecimal；scale 非 0 时映射为 BigDecimal。
-     *
-     * Oracle 数据库 number 类型对应 java 类型：
-     *  1：如果不指定number的长度，或指定长度 n > 18
-     *     number 对应 java.math.BigDecimal
-     *  2：如果number的长度在10 <= n <= 18
-     *     number(n) 对应 java.lang.Long
-     *  3：如果number的长度在1 <= n <= 9
-     *     number(n) 对应 java.lang.Integer 类型
-     *
-     * 社区分享：《Oracle NUMBER 类型映射改进》https://jfinal.com/share/1145
      */
     protected String handleJavaType(Dialect dialect, String javaType, ResultSetMetaData rsmd, int column) throws SQLException {
-        // 当前实现只处理 Oracle
-        if (!(dialect instanceof OracleDialect)) {
-            return javaType;
-        }
-
-        // 默认实现只处理 BigDecimal 类型
-        if ("java.math.BigDecimal".equals(javaType)) {
-            int scale = rsmd.getScale(column);			// 小数点右边的位数，值为 0 表示整数
-            int precision = rsmd.getPrecision(column);	// 最大精度
-            if (scale == 0) {
-                if (precision <= 9) {
-                    javaType = "java.lang.Integer";
-                } else if (precision <= 18) {
-                    javaType = "java.lang.Long";
-                } else {
-                    javaType = "java.math.BigDecimal";
-                }
-            } else {
-                // 非整数均使用 BigDecimal；如需 Double 等类型可覆盖 handleJavaType(...)
-                javaType = "java.math.BigDecimal";
-            }
-        }
-
         return javaType;
     }
 

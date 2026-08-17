@@ -18,6 +18,7 @@ package cn.aifei.db.dialect;
 
 import org.junit.Test;
 import java.lang.reflect.Proxy;
+import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import static org.junit.Assert.assertEquals;
@@ -49,13 +50,35 @@ public class DialectColumnValueClassNameTest {
                 sqliteDialect.resolveColumnValueClassName(metadata(Integer.class.getName()), 1, Types.BOOLEAN));
     }
 
+    @Test
+    public void oracleNumberUsesPrecisionAndScale() throws Exception {
+        Dialect oracleDialect = new OracleDialect();
+
+        assertEquals(Integer.class.getName(),
+                oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 9, 0), 1, Types.NUMERIC));
+        assertEquals(Long.class.getName(),
+                oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 18, 0), 1, Types.NUMERIC));
+        assertEquals(BigDecimal.class.getName(),
+                oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 19, 0), 1, Types.NUMERIC));
+        assertEquals(BigDecimal.class.getName(),
+                oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 9, 2), 1, Types.NUMERIC));
+    }
+
     private ResultSetMetaData metadata(String className) {
+        return metadata(className, 0, 0);
+    }
+
+    private ResultSetMetaData metadata(String className, int precision, int scale) {
         return (ResultSetMetaData) Proxy.newProxyInstance(
                 getClass().getClassLoader(),
                 new Class<?>[]{ResultSetMetaData.class},
                 (proxy, method, args) -> {
                     if ("getColumnClassName".equals(method.getName())) {
                         return className;
+                    } else if ("getPrecision".equals(method.getName())) {
+                        return precision;
+                    } else if ("getScale".equals(method.getName())) {
+                        return scale;
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });
