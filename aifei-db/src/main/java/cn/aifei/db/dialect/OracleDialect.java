@@ -166,10 +166,10 @@ public class OracleDialect extends Dialect {
     public String resolveColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
         String className = super.resolveColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
         if ("java.math.BigDecimal".equals(className)) {
-            int scale = resultSetMetaData.getScale(columnIndex);
+            int scale = resultSetMetaData.getScale(columnIndex);                // 小数点右边的位数，值为 0 表示整数
             // scale = -127 表示未指定；普通负 scale 当前也保守地保留 BigDecimal
             if (scale == 0) {
-                int precision = resultSetMetaData.getPrecision(columnIndex);
+                int precision = resultSetMetaData.getPrecision(columnIndex);    // 最大精度
                 // precision <= 0 按未知处理，不得收窄
                 if (precision >= 1 && precision <= 9) {
                     return "java.lang.Integer";
