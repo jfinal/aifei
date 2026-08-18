@@ -76,6 +76,18 @@ public class DialectColumnValueClassNameTest {
                 oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 9, 2), 1, Types.NUMERIC));
     }
 
+    @Test
+    public void oracleNumberKeepsBigDecimalWhenMetadataCannotSafelyNarrow() throws Exception {
+        Dialect oracleDialect = new OracleDialect();
+
+        assertEquals(BigDecimal.class.getName(),
+                oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 0, 0), 1, Types.NUMERIC));
+        assertEquals(BigDecimal.class.getName(),
+                oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 0, -127), 1, Types.NUMERIC));
+        assertEquals(BigDecimal.class.getName(),
+                oracleDialect.resolveColumnValueClassName(metadata(BigDecimal.class.getName(), 6, -2), 1, Types.NUMERIC));
+    }
+
     private ResultSetMetaData metadata(String className) {
         return metadata(className, 0, 0);
     }

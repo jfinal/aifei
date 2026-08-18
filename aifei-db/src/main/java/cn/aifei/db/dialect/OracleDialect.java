@@ -149,8 +149,11 @@ public class OracleDialect extends Dialect {
      * Oracle NUMBER 默认由 JDBC 驱动报告为 BigDecimal，这里根据精度与小数位数
      * 进一步解析代码生成阶段使用的 Java 类型。
      *
-     * scale 为 0 时，precision 不超过 9 映射为 Integer，不超过 18 映射为 Long，
-     * 其余情况映射为 BigDecimal；scale 非 0 时映射为 BigDecimal。
+     * 仅当 scale 为 0 且 precision 明确为正数时进行类型收窄：precision 不超过 9
+     * 映射为 Integer，不超过 18 映射为 Long，其余情况映射为 BigDecimal。
+     * precision 小于等于 0 时按精度未知处理；Oracle JDBC 使用 scale = -127 表示
+     * scale 未指定；普通负 scale 表示向小数点左侧舍入。上述情况均保留 BigDecimal，
+     * 避免根据不完整元数据或负 scale 错误收窄类型。
      *
      * Oracle 数据库 NUMBER 类型对应 Java 类型：
      *  1：如果不指定 NUMBER 的长度，或指定长度 n > 18，映射为 java.math.BigDecimal
@@ -163,12 +166,14 @@ public class OracleDialect extends Dialect {
     public String resolveColumnValueClassName(ResultSetMetaData resultSetMetaData, int columnIndex, int jdbcType) throws SQLException {
         String className = super.resolveColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
         if ("java.math.BigDecimal".equals(className)) {
-            int scale = resultSetMetaData.getScale(columnIndex);                // 小数点右边的位数，值为 0 表示整数
+            int scale = resultSetMetaData.getScale(columnIndex);
+            // scale = -127 表示未指定；普通负 scale 当前也保守地保留 BigDecimal
             if (scale == 0) {
-                int precision = resultSetMetaData.getPrecision(columnIndex);    // 最大精度
-                if (precision <= 9) {
+                int precision = resultSetMetaData.getPrecision(columnIndex);
+                // precision <= 0 按未知处理，不得收窄
+                if (precision >= 1 && precision <= 9) {
                     return "java.lang.Integer";
-                } else if (precision <= 18) {
+                } else if (precision >= 10 && precision <= 18) {
                     return "java.lang.Long";
                 }
             }
