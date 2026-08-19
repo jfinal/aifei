@@ -14,41 +14,26 @@
  * limitations under the License.
  */
 
-package cn.aifei.db.core;
+package cn.aifei.db.util;
 
 import org.junit.Test;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.LinkedHashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
-public class AifeiRowTemporalTest {
-
-    @Test
-    public void localDateGetterConvertsJdbcDateAndSupportsDefaultValue() {
-        LocalDate expected = LocalDate.of(2026, 8, 19);
-        LocalDate defaultValue = LocalDate.of(2000, 1, 1);
-        Row row = new Row().data(new LinkedHashMap<>())
-                .put("birthday", java.sql.Date.valueOf(expected));
-
-        assertEquals(expected, row.getLocalDate("birthday"));
-        assertSame(defaultValue, row.getLocalDate("missing", defaultValue));
-        assertNull(row.getLocalDate("missing"));
-    }
+public class KvTemporalTest {
 
     @Test
     public void localTimeGetterConvertsJdbcTimeAndSupportsDefaultValue() {
         LocalTime expected = LocalTime.of(12, 34, 56);
         LocalTime defaultValue = LocalTime.MIDNIGHT;
-        Row row = new Row().data(new LinkedHashMap<>())
-                .put("start_time", java.sql.Time.valueOf(expected));
+        Kv kv = Kv.of("start_time", java.sql.Time.valueOf(expected));
 
-        assertEquals(expected, row.getLocalTime("start_time"));
-        assertSame(defaultValue, row.getLocalTime("missing", defaultValue));
-        assertNull(row.getLocalTime("missing"));
+        assertEquals(expected, kv.getLocalTime("start_time"));
+        assertSame(defaultValue, kv.getLocalTime("missing", defaultValue));
+        assertNull(kv.getLocalTime("missing"));
     }
 }

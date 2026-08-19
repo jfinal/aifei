@@ -52,13 +52,13 @@ public class TypeMappingTest {
         assertEquals(java.util.Date.class.getName(), mapping.getType(LocalDateTime.class.getName()));
 
         assertEquals(LocalDate.class.getName(), mapping.getType(java.sql.Date.class.getName()));
-        assertEquals(java.sql.Time.class.getName(), mapping.getType(java.sql.Time.class.getName()));
+        assertEquals(LocalTime.class.getName(), mapping.getType(java.sql.Time.class.getName()));
         assertEquals(LocalDate.class.getName(), mapping.getType(LocalDate.class.getName()));
         assertEquals(LocalTime.class.getName(), mapping.getType(LocalTime.class.getName()));
 
         assertEquals(java.util.Date.class.getName(), mapping.getType(Types.TIMESTAMP));
         assertEquals(LocalDate.class.getName(), mapping.getType(Types.DATE));
-        assertEquals(java.sql.Time.class.getName(), mapping.getType(Types.TIME));
+        assertEquals(LocalTime.class.getName(), mapping.getType(Types.TIME));
     }
 
     @Test

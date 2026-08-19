@@ -45,9 +45,11 @@ import java.util.Map;
  * getDate(String) 并原样返回 Timestamp 对象，因此保留具体类型及纳秒。由 getObject(i)
  * 返回的 LocalDateTime 也映射为 java.util.Date，并由 TypeConverter 转换成
  * Timestamp。DATE 映射为 java.time.LocalDate，生成的 getter 通过 TypeConverter
- * 将运行时 java.sql.Date 转换成 LocalDate；其它 getObject(i) 路径报告的
- * LocalDate/LocalTime 保持原类型，TIME 报告 java.sql.Time 时也保持原类型。
- * 这些映射不隐式补入缺失的日期或时间，也不将 LocalTime 降格为 java.sql.Time。
+ * 将运行时 java.sql.Date 转换成 LocalDate。TIME 映射为 java.time.LocalTime，
+ * getObject(i) 返回 java.sql.Time 时由生成的 getter 转换，直接返回 LocalTime 时
+ * 保持原值与纳秒精度。这些映射不隐式补入缺失的日期或时间，也不丢弃时区信息。
+ * 默认 TIME 映射只表示一天内的本地时间；MySQL 将 TIME 用作负数或超过 24 小时的
+ * 时长时，应通过自定义 Dialect 和 TypeMapping 映射为 String 或其它时长类型。
  * 可通过 addMapping(...) 和 removeMapping(...) 调整默认映射规则。
  */
 public class TypeMapping {
@@ -73,11 +75,10 @@ public class TypeMapping {
 		// Dialect 默认对 DATE 使用 getDate() 读取，生成 getter 将 java.sql.Date 转换为 LocalDate
 		put("java.sql.Date", "java.time.LocalDate");
 
-		// Dialect 默认对 TIME 使用 getObject() 读取；元数据报告 java.sql.Time 时保持原类型
-		put("java.sql.Time", "java.sql.Time");
+		// Dialect 默认对 TIME 使用 getObject() 读取，生成 getter 将 java.sql.Time 转换为 LocalTime
+		put("java.sql.Time", "java.time.LocalTime");
 
-		// LocalTime 保持与 getObject() 返回值一致，避免生成 java.sql.Time getter 后强转失败
-		// 不将 LocalTime 降格转换为 java.sql.Time，以免丢失纳秒精度
+		// LocalTime 保持与 getObject() 返回值一致，避免降格为 java.sql.Time 丢失纳秒精度
 		put("java.time.LocalTime", "java.time.LocalTime");
 		put("java.time.LocalDate", "java.time.LocalDate");
 
@@ -168,13 +169,13 @@ public class TypeMapping {
 	// ---------------------------------------------------------------------------------------
 
 	protected Map<Integer, String> jdbcTypeToJavaType = new HashMap<Integer, String>(64) {{
-		// 类名映射未命中时的兜底类型：TIMESTAMP 保持已有 Date API，DATE 使用无时间、无时区的 LocalDate
+		// 类名映射未命中时的兜底类型：TIMESTAMP 保持已有 Date API，DATE/TIME 使用 Java 8 日期时间类型
 		put(Types.TIMESTAMP, java.util.Date.class.getName());
 
 		// --------------------------------------------------------------------
 		// --------------------------------------------------------------------
 
-		put(Types.TIME, java.sql.Time.class.getName());
+		put(Types.TIME, java.time.LocalTime.class.getName());
 		put(Types.DATE, java.time.LocalDate.class.getName());
 
 		/*

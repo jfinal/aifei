@@ -57,7 +57,7 @@ public class MetaReaderTest {
 
         assertEquals(LocalDate.class.getName(), fields.get(0).javaType);
         assertEquals(java.util.Date.class.getName(), fields.get(1).javaType);
-        assertEquals(java.sql.Time.class.getName(), fields.get(2).javaType);
+        assertEquals(LocalTime.class.getName(), fields.get(2).javaType);
         assertEquals(LocalDate.class.getName(), fields.get(3).javaType);
         assertEquals(LocalTime.class.getName(), fields.get(4).javaType);
         assertEquals(java.util.Date.class.getName(), fields.get(5).javaType);

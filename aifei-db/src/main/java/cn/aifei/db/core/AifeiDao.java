@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Function;
 
@@ -758,6 +759,10 @@ public class AifeiDao<D extends AifeiDao<D, R>, R extends AifeiRow<R>> {
 
     public LocalDate queryLocalDate() {
         return config.queryExecutor.queryLocalDate(this);
+    }
+
+    public LocalTime queryLocalTime() {
+        return config.queryExecutor.queryLocalTime(this);
     }
 
     public java.sql.Timestamp queryTimestamp() {

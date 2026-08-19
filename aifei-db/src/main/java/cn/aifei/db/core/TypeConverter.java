@@ -267,6 +267,41 @@ public class TypeConverter implements Serializable {
         throw new IllegalArgumentException("Cannot convert type " + ld.getClass().getName() + " to LocalDate.");
     }
 
+    public LocalTime toLocalTime(Object lt) {
+        if (lt instanceof LocalTime) {
+            return (LocalTime) lt;
+        } else if (lt == null) {
+            return null;
+        }
+
+        if (lt instanceof java.sql.Time) {
+            return ((java.sql.Time) lt).toLocalTime();
+        }
+        if (lt instanceof Timestamp) {
+            return ((Timestamp) lt).toLocalDateTime().toLocalTime();
+        }
+        if (lt instanceof java.sql.Date) {
+            throw new IllegalArgumentException("Cannot convert java.sql.Date to LocalTime without a time.");
+        }
+        if (lt instanceof java.util.Date) {
+            return TimeUtil.toLocalTime((java.util.Date) lt);
+        }
+        if (lt instanceof LocalDateTime) {
+            return ((LocalDateTime) lt).toLocalTime();
+        }
+        if (lt instanceof LocalDate) {
+            throw new IllegalArgumentException("Cannot convert LocalDate to LocalTime without a time.");
+        }
+        if (lt instanceof OffsetTime || lt instanceof OffsetDateTime) {
+            throw new IllegalArgumentException("Cannot convert " + lt.getClass().getSimpleName() + " to LocalTime without discarding its offset.");
+        }
+        if (lt instanceof String) {
+            return TimeUtil.parseLocalTime((String) lt);
+        }
+
+        throw new IllegalArgumentException("Cannot convert type " + lt.getClass().getName() + " to LocalTime.");
+    }
+
     public Timestamp toTimestamp(Object ts) {
         if (ts instanceof Timestamp) {
             return (Timestamp) ts;

@@ -141,6 +141,27 @@ public class TypeConverterTest {
     }
 
     @Test
+    public void localTimeConversionUsesOnlyValuesThatContainARealTime() {
+        Timestamp timestamp = Timestamp.valueOf("2026-07-13 12:34:56.123456789");
+        LocalTime expected = LocalTime.of(12, 34, 56, 123456789);
+
+        assertEquals(LocalTime.of(12, 34, 56), converter.toLocalTime(java.sql.Time.valueOf("12:34:56")));
+        assertEquals(expected, converter.toLocalTime(timestamp));
+        assertEquals(expected, converter.toLocalTime(timestamp.toLocalDateTime()));
+        assertEquals(LocalTime.of(12, 0), converter.toLocalTime("12"));
+        assertEquals(LocalTime.of(12, 34), converter.toLocalTime("12:34"));
+        assertEquals(LocalTime.of(1, 2, 3, 123456789), converter.toLocalTime("1:2:3.123456789"));
+        assertSame(expected, converter.toLocalTime(expected));
+        assertNull(converter.toLocalTime(null));
+
+        assertIllegalArgument("without a time", () -> converter.toLocalTime(java.sql.Date.valueOf("2026-07-13")));
+        assertIllegalArgument("without a time", () -> converter.toLocalTime(LocalDate.of(2026, 7, 13)));
+        assertIllegalArgument("discarding its offset",
+                () -> converter.toLocalTime(OffsetTime.of(LocalTime.NOON, ZoneOffset.UTC)));
+        assertIllegalArgument("1 to 9 digits", () -> converter.toLocalTime("12:34:56.1234567890"));
+    }
+
+    @Test
     public void timestampConversionPreservesLocalFieldsAndNanoseconds() {
         Timestamp existing = Timestamp.valueOf("2026-07-13 12:34:56.123456789");
         assertSame(existing, converter.toTimestamp(existing));

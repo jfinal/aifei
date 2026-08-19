@@ -25,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -203,6 +204,11 @@ public class QueryExecutor {
     public LocalDate queryLocalDate(AifeiDao<?, ?> dao) {
         Object value = queryField(dao);
         return dao.config().getTypeConverter().toLocalDate(value);
+    }
+
+    public LocalTime queryLocalTime(AifeiDao<?, ?> dao) {
+        Object value = queryField(dao);
+        return dao.config().getTypeConverter().toLocalTime(value);
     }
 
     public java.sql.Timestamp queryTimestamp(AifeiDao<?, ?> dao) {

@@ -275,8 +275,9 @@ public class MetaReader {
      * getDate()、getTimestamp()，因此以 java.sql.Date、java.sql.Timestamp 作为
      * 源类型进行映射；其它 JDBC 类型以 getObject() 对应的 getColumnClassName()
      * 为源类型。默认将 java.sql.Timestamp 映射为 java.util.Date，将 java.sql.Date
-     * 映射为 java.time.LocalDate；其它类型由 TypeMapping 的类名映射决定，未命中时
-     * 按 JDBC 类型兜底。生成的 LocalDate getter 负责转换运行时读取的 java.sql.Date。
+     * 映射为 java.time.LocalDate，将 java.sql.Time 映射为 java.time.LocalTime；
+     * 其它类型由 TypeMapping 的类名映射决定，未命中时按 JDBC 类型兜底。生成的
+     * LocalDate、LocalTime getter 负责转换运行时读取的 JDBC 日期时间对象。
      * 上述运行时源类型由 Dialect.resolveColumnValueClassName(...) 统一提供，
      * 避免 MetaReader 与 Dialect.readColumnValue(...) 的读取策略脱节。
      */

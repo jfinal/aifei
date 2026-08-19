@@ -190,6 +190,32 @@ public class TimeUtil {
         return "yyyy-MM-dd HH:mm:ss.SSS";
     }
 
+    private static String detectTimePattern(String timeString) {
+        int firstColon = timeString.indexOf(':');
+        if (firstColon == -1) {
+            return "HH";
+        }
+        int secondColon = timeString.indexOf(':', firstColon + 1);
+        if (secondColon == -1) {
+            return "HH:mm";
+        }
+        int dot = timeString.indexOf('.', secondColon + 1);
+        if (dot == -1) {
+            return "HH:mm:ss";
+        }
+
+        int fractionLength = timeString.length() - dot - 1;
+        if (fractionLength < 1 || fractionLength > 9) {
+            throw new IllegalArgumentException("Fractional second precision must contain 1 to 9 digits: \"" + timeString + "\"");
+        }
+
+        StringBuilder pattern = new StringBuilder("HH:mm:ss.");
+        for (int i = 0; i < fractionLength; i++) {
+            pattern.append('S');
+        }
+        return pattern.toString();
+    }
+
     /**
      * 按指定 pattern 将 String 转换成 LocalDateTime
      */
@@ -217,6 +243,14 @@ public class TimeUtil {
      */
     public static LocalTime parseLocalTime(String localTimeString, String pattern) {
         return LocalTime.parse(localTimeString, getDateTimeFormatter(pattern));
+    }
+
+    /**
+     * 自动探测 pattern 将 String 转换成 LocalTime，支持 1 至 9 位小数秒。
+     */
+    public static LocalTime parseLocalTime(String localTimeString) {
+        String pattern = detectTimePattern(localTimeString);
+        return parseLocalTime(localTimeString, pattern);
     }
 
     /**

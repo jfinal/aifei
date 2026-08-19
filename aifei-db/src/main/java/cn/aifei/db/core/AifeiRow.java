@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Function;
 
@@ -581,6 +582,18 @@ public class AifeiRow<R extends AifeiRow<R>> implements Iterable<Map.Entry<Strin
     public LocalDate getLocalDate(String field, LocalDate defaultValue) {
         Object v = get(field);
         return v != null ? typeConverter.toLocalDate(v) : defaultValue;
+    }
+
+    /**
+     * 获取 LocalTime 型字段值，主要用于不包含日期和时区的 SQL TIME。
+     */
+    public LocalTime getLocalTime(String field) {
+        return typeConverter.toLocalTime(get(field));
+    }
+
+    public LocalTime getLocalTime(String field, LocalTime defaultValue) {
+        Object v = get(field);
+        return v != null ? typeConverter.toLocalTime(v) : defaultValue;
     }
 
     /**

@@ -46,6 +46,7 @@ public class BaseModelGeneratorUtil {
         // 日期时间类型使用转换 getter，使生成类型不必与 JDBC 运行时对象完全相同
         put("java.util.Date", "getDate");
         put("java.time.LocalDate", "getLocalDate");
+        put("java.time.LocalTime", "getLocalTime");
         put("java.time.LocalDateTime", "getLocalDateTime");
 
         // 新增 TypeKit 转换类之后，支持了更多的类型
