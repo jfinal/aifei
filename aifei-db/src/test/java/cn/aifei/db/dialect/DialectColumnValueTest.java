@@ -30,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,27 +45,29 @@ import static org.junit.Assert.fail;
 public class DialectColumnValueTest {
 
     @Test
-    public void defaultParameterBindingPreservesJdbcDateSubtypes() throws Exception {
+    public void defaultParameterBindingPreservesJdbcAndJavaTimeDateTypes() throws Exception {
         java.util.Date utilDate = new java.util.Date(1000L);
         Timestamp timestamp = new Timestamp(2000L);
         java.sql.Date sqlDate = new java.sql.Date(3000L);
         java.sql.Time sqlTime = new java.sql.Time(4000L);
         CustomDate customDate = new CustomDate(5000L);
+        LocalDate localDate = LocalDate.of(2026, 8, 19);
         PreparedStatementRecorder recorder = new PreparedStatementRecorder();
 
         new OracleDialect().fillStatement(recorder.proxy,
-                Arrays.asList(utilDate, timestamp, sqlDate, sqlTime, customDate, "text", null));
+                Arrays.asList(utilDate, timestamp, sqlDate, sqlTime, customDate, localDate, "text", null));
 
         assertEquals(Arrays.asList(
                 "setTimestamp:1", "setTimestamp:2", "setDate:3", "setTime:4",
-                "setTimestamp:5", "setObject:6", "setObject:7"), recorder.methodAndIndexes());
+                "setTimestamp:5", "setObject:6", "setObject:7", "setObject:8"), recorder.methodAndIndexes());
         assertEquals(utilDate.getTime(), ((Timestamp) recorder.calls.get(0).value).getTime());
         assertSame(timestamp, recorder.calls.get(1).value);
         assertSame(sqlDate, recorder.calls.get(2).value);
         assertSame(sqlTime, recorder.calls.get(3).value);
         assertEquals(customDate.getTime(), ((Timestamp) recorder.calls.get(4).value).getTime());
-        assertSame("text", recorder.calls.get(5).value);
-        assertNull(recorder.calls.get(6).value);
+        assertSame(localDate, recorder.calls.get(5).value);
+        assertSame("text", recorder.calls.get(6).value);
+        assertNull(recorder.calls.get(7).value);
     }
 
     @Test
@@ -78,13 +81,15 @@ public class DialectColumnValueTest {
     public void h2UsesSetBytesOnlyForBinaryArrays() throws Exception {
         byte[] bytes = {1, 2, 3};
         java.util.Date date = new java.util.Date(1234L);
+        LocalDate localDate = LocalDate.of(2026, 8, 19);
         PreparedStatementRecorder recorder = new PreparedStatementRecorder();
 
-        new H2Dialect().fillStatement(recorder.proxy, Arrays.asList(bytes, date));
+        new H2Dialect().fillStatement(recorder.proxy, Arrays.asList(bytes, date, localDate));
 
-        assertEquals(Arrays.asList("setBytes:1", "setObject:2"), recorder.methodAndIndexes());
+        assertEquals(Arrays.asList("setBytes:1", "setObject:2", "setObject:3"), recorder.methodAndIndexes());
         assertSame(bytes, recorder.calls.get(0).value);
         assertSame(date, recorder.calls.get(1).value);
+        assertSame(localDate, recorder.calls.get(2).value);
     }
 
     @Test
@@ -168,15 +173,17 @@ public class DialectColumnValueTest {
     private static void assertAllSetObject(Dialect dialect) throws Exception {
         byte[] bytes = {1, 2};
         java.util.Date date = new java.util.Date(1234L);
+        LocalDate localDate = LocalDate.of(2026, 8, 19);
         PreparedStatementRecorder recorder = new PreparedStatementRecorder();
 
-        dialect.fillStatement(recorder.proxy, Arrays.asList(bytes, date, null));
+        dialect.fillStatement(recorder.proxy, Arrays.asList(bytes, date, localDate, null));
 
-        assertEquals(Arrays.asList("setObject:1", "setObject:2", "setObject:3"),
+        assertEquals(Arrays.asList("setObject:1", "setObject:2", "setObject:3", "setObject:4"),
                 recorder.methodAndIndexes());
         assertSame(bytes, recorder.calls.get(0).value);
         assertSame(date, recorder.calls.get(1).value);
-        assertNull(recorder.calls.get(2).value);
+        assertSame(localDate, recorder.calls.get(2).value);
+        assertNull(recorder.calls.get(3).value);
     }
 
     private static Blob blob(byte[] data, long reportedLength) {

@@ -46,18 +46,18 @@ public class TypeMappingTest {
     }
 
     @Test
-    public void temporalMappingsMatchRuntimeValueSemantics() {
+    public void temporalMappingsPreserveValueSemanticsAtGeneratedApiBoundary() {
         assertEquals(java.util.Date.class.getName(), mapping.getType(java.util.Date.class.getName()));
         assertEquals(java.util.Date.class.getName(), mapping.getType(java.sql.Timestamp.class.getName()));
         assertEquals(java.util.Date.class.getName(), mapping.getType(LocalDateTime.class.getName()));
 
-        assertEquals(java.sql.Date.class.getName(), mapping.getType(java.sql.Date.class.getName()));
+        assertEquals(LocalDate.class.getName(), mapping.getType(java.sql.Date.class.getName()));
         assertEquals(java.sql.Time.class.getName(), mapping.getType(java.sql.Time.class.getName()));
         assertEquals(LocalDate.class.getName(), mapping.getType(LocalDate.class.getName()));
         assertEquals(LocalTime.class.getName(), mapping.getType(LocalTime.class.getName()));
 
         assertEquals(java.util.Date.class.getName(), mapping.getType(Types.TIMESTAMP));
-        assertEquals(java.sql.Date.class.getName(), mapping.getType(Types.DATE));
+        assertEquals(LocalDate.class.getName(), mapping.getType(Types.DATE));
         assertEquals(java.sql.Time.class.getName(), mapping.getType(Types.TIME));
     }
 

@@ -45,7 +45,7 @@ import static org.junit.Assert.assertNull;
 public class MetaReaderTest {
 
     @Test
-    public void generatedTemporalTypesMatchDialectRuntimeReaders() throws Exception {
+    public void generatedTemporalTypesSafelyAdaptDialectRuntimeValues() throws Exception {
         TestMetaReader reader = new TestMetaReader();
         List<FieldInfo> fields = reader.readFields(new H2Dialect(),
                 column("sql_date", String.class.getName(), Types.DATE),
@@ -55,7 +55,7 @@ public class MetaReaderTest {
                 column("local_time", LocalTime.class.getName(), Types.OTHER),
                 column("local_datetime", LocalDateTime.class.getName(), Types.OTHER));
 
-        assertEquals(java.sql.Date.class.getName(), fields.get(0).javaType);
+        assertEquals(LocalDate.class.getName(), fields.get(0).javaType);
         assertEquals(java.util.Date.class.getName(), fields.get(1).javaType);
         assertEquals(java.sql.Time.class.getName(), fields.get(2).javaType);
         assertEquals(LocalDate.class.getName(), fields.get(3).javaType);

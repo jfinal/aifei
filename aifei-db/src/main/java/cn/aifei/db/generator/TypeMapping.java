@@ -44,7 +44,8 @@ import java.util.Map;
  * 默认将 java.sql.Timestamp 映射为 java.util.Date，默认生成的 getter 会调用
  * getDate(String) 并原样返回 Timestamp 对象，因此保留具体类型及纳秒。由 getObject(i)
  * 返回的 LocalDateTime 也映射为 java.util.Date，并由 TypeConverter 转换成
- * Timestamp。DATE 保留 java.sql.Date 类型；其它 getObject(i) 路径报告的
+ * Timestamp。DATE 映射为 java.time.LocalDate，生成的 getter 通过 TypeConverter
+ * 将运行时 java.sql.Date 转换成 LocalDate；其它 getObject(i) 路径报告的
  * LocalDate/LocalTime 保持原类型，TIME 报告 java.sql.Time 时也保持原类型。
  * 这些映射不隐式补入缺失的日期或时间，也不将 LocalTime 降格为 java.sql.Time。
  * 可通过 addMapping(...) 和 removeMapping(...) 调整默认映射规则。
@@ -69,8 +70,8 @@ public class TypeMapping {
 		// --------------------------------------------------------------------
 		// --------------------------------------------------------------------
 
-		// Dialect 默认对 DATE 使用 getDate() 读取，生成类型与运行时值保持一致
-		put("java.sql.Date", "java.sql.Date");
+		// Dialect 默认对 DATE 使用 getDate() 读取，生成 getter 将 java.sql.Date 转换为 LocalDate
+		put("java.sql.Date", "java.time.LocalDate");
 
 		// Dialect 默认对 TIME 使用 getObject() 读取；元数据报告 java.sql.Time 时保持原类型
 		put("java.sql.Time", "java.sql.Time");
@@ -167,14 +168,14 @@ public class TypeMapping {
 	// ---------------------------------------------------------------------------------------
 
 	protected Map<Integer, String> jdbcTypeToJavaType = new HashMap<Integer, String>(64) {{
-		// 类名映射未命中时的兜底类型：DATE/TIMESTAMP 对齐 Dialect 默认的类型化读取，
+		// 类名映射未命中时的兜底类型：TIMESTAMP 保持已有 Date API，DATE 使用无时间、无时区的 LocalDate
 		put(Types.TIMESTAMP, java.util.Date.class.getName());
 
 		// --------------------------------------------------------------------
 		// --------------------------------------------------------------------
 
 		put(Types.TIME, java.sql.Time.class.getName());
-		put(Types.DATE, java.sql.Date.class.getName());
+		put(Types.DATE, java.time.LocalDate.class.getName());
 
 		/*
 		 * 不要在此将 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 兜底映射成 Offset 类型。

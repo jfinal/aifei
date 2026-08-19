@@ -17,6 +17,7 @@
 package cn.aifei.db.generator;
 
 import org.junit.Test;
+import java.time.LocalDate;
 import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
@@ -50,5 +51,16 @@ public class BaseModelGeneratorUtilTest {
 
         assertEquals("getSmallValue", getter.get("methodName"));
         assertEquals("getInt", getter.get("getXxx"));
+    }
+
+    @Test
+    public void localDateMappingUsesConvertingLocalDateGetter() {
+        FieldInfo field = new FieldInfo(
+                "birthday", LocalDate.class.getName(), "birthday", null, false);
+
+        Map<String, Object> getter = new BaseModelGeneratorUtil().createGetterItem(null, field);
+
+        assertEquals("getBirthday", getter.get("methodName"));
+        assertEquals("getLocalDate", getter.get("getXxx"));
     }
 }

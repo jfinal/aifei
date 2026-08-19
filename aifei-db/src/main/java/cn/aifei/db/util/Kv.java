@@ -19,6 +19,7 @@ package cn.aifei.db.util;
 import cn.aifei.db.core.TypeConverter;
 import cn.aifei.enjoy.util.StrUtil;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -142,6 +143,10 @@ public class Kv extends LinkedHashMap<Object, Object> {
         return typeConverter.toLocalDateTime(get(key));
     }
 
+    public LocalDate getLocalDate(Object key) {
+        return typeConverter.toLocalDate(get(key));
+    }
+
     public String getStr(Object key, String defaultValue) {
         Object s = get(key);
         return s != null ? s.toString() : defaultValue;
@@ -190,6 +195,11 @@ public class Kv extends LinkedHashMap<Object, Object> {
     public LocalDateTime getLocalDateTime(Object key, LocalDateTime defaultValue) {
         Object value = get(key);
         return value != null ? typeConverter.toLocalDateTime(value) : defaultValue;
+    }
+
+    public LocalDate getLocalDate(Object key, LocalDate defaultValue) {
+        Object value = get(key);
+        return value != null ? typeConverter.toLocalDate(value) : defaultValue;
     }
 
     /**
