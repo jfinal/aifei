@@ -55,11 +55,14 @@ import java.util.Map;
 public class TypeMapping {
 
 	protected Map<String, String> classNameToJavaType = new HashMap<String, String>(64) {{
-		// 普通 java.util.Date 表示毫秒精度的时间点，保持原类型
-		put("java.util.Date", "java.util.Date");
-
 		// Dialect 默认对 TIMESTAMP 使用 getTimestamp() 读取；生成类型为 java.util.Date，运行时值仍为 Timestamp
 		put("java.sql.Timestamp", "java.util.Date");
+
+		// Dialect 默认对 DATE 使用 getDate() 读取，生成 getter 将 java.sql.Date 转换为 LocalDate
+		put("java.sql.Date", "java.time.LocalDate");
+
+		// Dialect 默认对 TIME 使用 getObject() 读取，生成 getter 将 java.sql.Time 转换为 LocalTime
+		put("java.sql.Time", "java.time.LocalTime");
 
 		/*
 		 * DATE/TIMESTAMP 的默认路径已由 MetaReader 按 getDate()/getTimestamp()
@@ -72,15 +75,12 @@ public class TypeMapping {
 		// --------------------------------------------------------------------
 		// --------------------------------------------------------------------
 
-		// Dialect 默认对 DATE 使用 getDate() 读取，生成 getter 将 java.sql.Date 转换为 LocalDate
-		put("java.sql.Date", "java.time.LocalDate");
-
-		// Dialect 默认对 TIME 使用 getObject() 读取，生成 getter 将 java.sql.Time 转换为 LocalTime
-		put("java.sql.Time", "java.time.LocalTime");
-
 		// LocalTime 保持与 getObject() 返回值一致，避免降格为 java.sql.Time 丢失纳秒精度
 		put("java.time.LocalTime", "java.time.LocalTime");
 		put("java.time.LocalDate", "java.time.LocalDate");
+
+		// 普通 java.util.Date 表示毫秒精度的时间点，保持原类型
+		put("java.util.Date", "java.util.Date");
 
 		// binary, varbinary, tinyblob, blob, mediumblob, longblob
 		// qjd project: print_info.content varbinary(61800);
@@ -171,12 +171,11 @@ public class TypeMapping {
 	protected Map<Integer, String> jdbcTypeToJavaType = new HashMap<Integer, String>(64) {{
 		// 类名映射未命中时的兜底类型：TIMESTAMP 保持已有 Date API，DATE/TIME 使用 Java 8 日期时间类型
 		put(Types.TIMESTAMP, java.util.Date.class.getName());
-
-		// --------------------------------------------------------------------
-		// --------------------------------------------------------------------
-
 		put(Types.TIME, java.time.LocalTime.class.getName());
 		put(Types.DATE, java.time.LocalDate.class.getName());
+
+		// --------------------------------------------------------------------
+		// --------------------------------------------------------------------
 
 		/*
 		 * 不要在此将 TIMESTAMP_WITH_TIMEZONE/TIME_WITH_TIMEZONE 兜底映射成 Offset 类型。
