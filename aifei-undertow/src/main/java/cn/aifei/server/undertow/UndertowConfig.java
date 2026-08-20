@@ -67,6 +67,7 @@ public class UndertowConfig {
     static final String PRINT_SERVER_URLS               = "undertow.printServerUrls";
 
     static final String MAX_BODY_SIZE                   = "undertow.maxBodySize";
+    static final String MAX_HEADER_SIZE                 = "undertow.maxHeaderSize";
 
     // ----------------------------------------------------------------------------
 
@@ -97,6 +98,7 @@ public class UndertowConfig {
     protected boolean printServerUrls           = true;
 
     protected long maxBodySize                  = 2 * 1024 * 1024;
+    protected int maxHeaderSize                 = 16 * 1024;
 
     protected ClassLoader classLoader;
     protected Prop p;
@@ -226,6 +228,7 @@ public class UndertowConfig {
         printServerUrls = p.getBoolean(PRINT_SERVER_URLS, printServerUrls);
 
         maxBodySize = p.getLong(MAX_BODY_SIZE, maxBodySize);
+        maxHeaderSize = p.getInt(MAX_HEADER_SIZE, maxHeaderSize);
     }
 
     /**
@@ -516,6 +519,18 @@ public class UndertowConfig {
 
     public long getMaxBodySize() {
         return maxBodySize;
+    }
+
+    public void setMaxHeaderSize(int maxHeaderSize) {
+        if (p.getInt(MAX_HEADER_SIZE) == null) {
+            this.maxHeaderSize = maxHeaderSize;
+        } else {
+            System.out.println("undertow-server: 优先使用配置文件中的 " + MAX_HEADER_SIZE + " = " + p.getInt(MAX_HEADER_SIZE));
+        }
+    }
+
+    public int getMaxHeaderSize() {
+        return maxHeaderSize;
     }
 
     public void setClassLoader(ClassLoader classLoader) {
