@@ -137,7 +137,10 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
     }
 
     protected void printServerUrls() {
+        String host = config.getHost() != null ? config.getHost().trim() : "0.0.0.0";
+
         String msg = "Server running at\n";
+        msg += " > Bind:    " + host + "\n";
         msg += " > Local:   http://localhost:" + config.getPort();
         if (config.isSslEnable()) {
             msg += "   https://localhost:" + config.getSslConfig().getPort();
@@ -145,7 +148,6 @@ public class UndertowServer implements Server<HttpServerExchange, Void> {
         msg += "\n";
 
         // host 配置为 "0.0.0.0"、"::" 或者具体的 ip 地址才允许网络访问
-        String host = config.getHost() != null ? config.getHost().trim() : "0.0.0.0";
         if ("localhost".equals(host) || "127.0.0.1".equals(host)) {
             System.out.print(msg);
             return;
