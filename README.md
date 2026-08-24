@@ -4,7 +4,7 @@
 
 官网: https://aifei.cn
 
-文档: https://gitee.com/jfinal/aifei-eco/tree/main/aifei-doc
+文档: https://aifei.cn/doc
 
 Demo：https://gitee.com/jfinal/aifei-eco/tree/main/aifei-demo
 
