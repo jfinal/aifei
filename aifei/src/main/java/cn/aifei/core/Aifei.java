@@ -59,7 +59,7 @@ public class Aifei {
     }
 
     private static <I extends Input, O extends Output> void doStart(AifeiConfig<I, O> aifeiConfig, String[] args) {
-        System.out.println("Starting Aifei " + VERSION);
+        System.out.println("\nStarting Aifei " + VERSION);
         long startTime = System.currentTimeMillis();
         commandLineArgumentToSystemProperty(args);
         Aifei.aifeiConfig = aifeiConfig;
