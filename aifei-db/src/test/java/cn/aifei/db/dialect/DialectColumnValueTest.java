@@ -142,22 +142,22 @@ public class DialectColumnValueTest {
         Dialect dialect = new H2Dialect();
         byte[] actual = {1, 2, 3};
 
-        assertArrayEquals(actual, dialect.handleBlob(blob(actual, 5)));
-        assertArrayEquals(new byte[0], dialect.handleBlob(blob(new byte[0], 0)));
-        assertNull(dialect.handleBlob(null));
-        assertNull(dialect.handleBlob(blobWithNullStream(3)));
+        assertArrayEquals(actual, dialect.readBlobAsBytes(blob(actual, 5)));
+        assertArrayEquals(new byte[0], dialect.readBlobAsBytes(blob(new byte[0], 0)));
+        assertNull(dialect.readBlobAsBytes(null));
+        assertNull(dialect.readBlobAsBytes(blobWithNullStream(3)));
 
-        assertSqlException("too large", () -> dialect.handleBlob(blob(new byte[0], (long) Integer.MAX_VALUE + 1)));
-        assertSqlException("Failed to read Blob data", () -> dialect.handleBlob(blobWithBrokenStream()));
+        assertSqlException("too large", () -> dialect.readBlobAsBytes(blob(new byte[0], (long) Integer.MAX_VALUE + 1)));
+        assertSqlException("Failed to read Blob data", () -> dialect.readBlobAsBytes(blobWithBrokenStream()));
     }
 
     @Test
     public void clobMaterializationHandlesNullAndRejectsOversizedValues() throws Exception {
         Dialect dialect = new H2Dialect();
 
-        assertEquals("", dialect.handleClob(clob("")));
-        assertNull(dialect.handleClob(null));
-        assertSqlException("too large", () -> dialect.handleClob(clobWithLength((long) Integer.MAX_VALUE + 1)));
+        assertEquals("", dialect.readClobAsString(clob("")));
+        assertNull(dialect.readClobAsString(null));
+        assertSqlException("too large", () -> dialect.readClobAsString(clobWithLength((long) Integer.MAX_VALUE + 1)));
     }
 
     @Test
