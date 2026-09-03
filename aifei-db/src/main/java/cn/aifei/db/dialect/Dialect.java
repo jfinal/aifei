@@ -497,16 +497,16 @@ public abstract class Dialect {
         Object value = resultSet.getObject(columnIndex);
         switch (jdbcType) {
             case Types.BLOB:
-                return value instanceof Blob ? handleBlob((Blob) value) : value;
+                return value instanceof Blob ? readBlobAsBytes((Blob) value) : value;
             case Types.CLOB:
             case Types.NCLOB:
-                return value instanceof Clob ? handleClob((Clob) value) : value;
+                return value instanceof Clob ? readClobAsString((Clob) value) : value;
             default:
                 return value;
         }
     }
 
-    protected byte[] handleBlob(Blob blob) throws SQLException {
+    protected byte[] readBlobAsBytes(Blob blob) throws SQLException {
         if (blob == null) {
             return null;
         }
@@ -538,7 +538,7 @@ public abstract class Dialect {
         }
     }
 
-    protected String handleClob(Clob clob) throws SQLException {
+    protected String readClobAsString(Clob clob) throws SQLException {
         if (clob == null) {
             return null;
         }
