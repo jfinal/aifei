@@ -72,9 +72,9 @@ public class Aifei {
         Aifei.plugins = new Plugins();
 
         // 回调用户配置逻辑
-        aifeiConfig.config(settings);   // PathUtil.init(aifeiConfig);
+        aifeiConfig.config(settings);
+        aifeiConfig.config(plugins);    startPlugins(plugins);  // 启动 Plugin
         aifeiConfig.config(routes);
-        aifeiConfig.config(plugins);
 
         // 检测 Server、Handler 是否已配置
         if (settings.getServer() == null) {
@@ -83,9 +83,6 @@ public class Aifei {
         if (settings.getHandlerList().isEmpty()) {
             throw new IllegalStateException("Handler not configured.");
         }
-
-        // 启动 Plugin
-        startPlugins(plugins);
 
         // 回调 onStart，可使用 plugin
         aifeiConfig.onStart();
