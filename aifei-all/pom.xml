@@ -60,6 +60,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
+                    <!-- 聚合 Javadoc 缺少可选或已排除的依赖时，允许继续打包 -->
+                    <failOnError>false</failOnError>
                     <includeDependencySources>true</includeDependencySources>
                     <dependencySourceIncludes>
                         <dependencySourceInclude>${project.groupId}:aifei</dependencySourceInclude>
@@ -143,6 +145,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <!-- 强制每次重建主 JAR，避免增量构建时 Shade 重复打包自己上次的输出 -->
+                    <forceCreation>true</forceCreation>
+                </configuration>
                 <executions>
                     <execution>
                         <id>jar-aifei-all-sources</id>
