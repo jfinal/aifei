@@ -50,10 +50,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
 
-        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <!-- 使用 JDK 21 构建时，限定语法、字节码和 JDK API 三者均为 Java 8 -->
+        <maven.compiler.release>8</maven.compiler.release>
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
@@ -179,10 +180,9 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                     <configuration>
-                        <source>${maven.compiler.source}</source>
-                        <target>${maven.compiler.target}</target>
+                        <release>${maven.compiler.release}</release>
                         <encoding>${project.build.sourceEncoding}</encoding>
-                        <!-- 保留方法参数名，便于运行时反射读取 -->
+                        <!-- 保留方法参数名，用于运行时反射读取 -->
                         <parameters>true</parameters>
                     </configuration>
                 </plugin>
@@ -210,13 +210,13 @@
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>${maven-javadoc-plugin.version}</version>
                     <configuration>
-                        <source>${maven.compiler.source}</source>
+                        <release>${maven.compiler.release}</release>
                         <encoding>${project.build.sourceEncoding}</encoding>
                         <show>private</show>
                         <doclint>none</doclint>
                         <detectJavaApiLink>false</detectJavaApiLink>
                         <detectOfflineLinks>false</detectOfflineLinks>
-                        <failOnError>false</failOnError>
+                        <failOnError>true</failOnError>
                     </configuration>
                     <executions>
                         <execution>
@@ -251,6 +251,7 @@
     </build>
 
     <profiles>
+        <!-- mvn -Pcentral-release clean verify -->
         <!-- mvn -Pcentral-release clean deploy -->
         <profile>
             <id>central-release</id>
