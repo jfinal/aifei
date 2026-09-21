@@ -44,7 +44,7 @@ public class InstanceFactory {
     static final Method PRIVATE_LOOKUP_IN = findPrivateLookupIn();
     static final ComputeCache<Class<?>, Supplier<?>> CACHE = new ComputeCache<>(512);
 
-    static boolean jit = true;
+    static volatile boolean jit = true;
 
     // JDK 9 及更高版本通过 MethodHandles.privateLookupIn(...) 更适应 JPMS
     private static Method findPrivateLookupIn() {
