@@ -55,16 +55,16 @@ public class InstanceUtil {
      * 通过可访问的 public 无参构造器创建新对象。
      */
     @SuppressWarnings("unchecked")
-    public <T> T get(Class<T> type) {
+    public static <T> T get(Class<T> type) {
         if (jit) {
-            return ((Supplier<T>) CACHE.computeIfAbsent(type, this::createSupplier)).get();
+            return ((Supplier<T>) CACHE.computeIfAbsent(type, InstanceUtil::createSupplier)).get();
         } else {
-            return ((Supplier<T>) REFLECTION_CACHE.computeIfAbsent(type, this::createReflectionSupplier)).get();
+            return ((Supplier<T>) REFLECTION_CACHE.computeIfAbsent(type, InstanceUtil::createReflectionSupplier)).get();
         }
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Supplier<T> createSupplier(Class<T> type) {
+    private static <T> Supplier<T> createSupplier(Class<T> type) {
         Constructor<T> constructor = getConstructor(type);
 
         try {
@@ -95,7 +95,7 @@ public class InstanceUtil {
     /**
      * 获取 public 无参构造器，不改变访问权限，是否可调用由后续访问检查决定。
      */
-    private <T> Constructor<T> getConstructor(Class<T> type) {
+    private static <T> Constructor<T> getConstructor(Class<T> type) {
         try {
             return type.getConstructor();
         } catch (NoSuchMethodException e) {
@@ -103,13 +103,13 @@ public class InstanceUtil {
         }
     }
 
-    private boolean isVisible(Class<?> type) throws ClassNotFoundException {
+    private static boolean isVisible(Class<?> type) throws ClassNotFoundException {
         // Lambda 使用工厂的类加载器解析目标类。
         // 同名类可能由不同 ClassLoader 加载，必须比较 Class 身份。
         return Class.forName(type.getName(), false, InstanceUtil.class.getClassLoader()) == type;
     }
 
-    private <T> Supplier<T> createReflectionSupplier(Class<T> type) {
+    private static <T> Supplier<T> createReflectionSupplier(Class<T> type) {
         Constructor<T> constructor = getConstructor(type);
         return () -> newInstance(constructor);
     }
