@@ -18,98 +18,111 @@ package cn.aifei.proxy;
 
 import cn.aifei.util.ComputeCache;
 import java.lang.invoke.*;
-import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
 import java.util.function.Supplier;
 
 /**
- * InstanceFactory 用于通过无参构造方法创建对象。
+ * InstanceFactory 用于通过可访问的 public 无参构造方法创建对象。
  *
  * <pre>
  * 设计：
- *  1: LambdaMetaFactory + Supplier 促使 JIT 将 supplier.get() 内联为
- *     new YourClass()，开销几乎为 0。
+ *  1: 优先使用 LambdaMetafactory + Supplier，为 JIT 内联提供优化机会。
  *
- *  2: CACHE 缓存构造器对象，避免每次重新获取。
+ *  2: 按目标类型与 jit 模式分别缓存创建策略，每次调用仍创建新对象。
  *
- *  3: MethodHandles.privateLookupIn 方法对 JPMS 适应性更好。不要使用
- *     getDeclaredConstructor()、getConstructor()，若要使用，前者比后者好。
+ *  3: Lambda 不适用或准备阶段抛出非 Error 异常时回退到普通反射，不扩大访问权限。
  * </pre>
  */
 public class InstanceFactory {
 
-    static final MethodType METHOD_TYPE_VOID = MethodType.methodType(void.class);
     static final MethodType METHOD_TYPE_SUPPLIER = MethodType.methodType(Supplier.class);
     static final MethodType METHOD_TYPE_OBJECT = MethodType.methodType(Object.class);
 
-    static final Method PRIVATE_LOOKUP_IN = findPrivateLookupIn();
     static final ComputeCache<Class<?>, Supplier<?>> CACHE = new ComputeCache<>(512);
+    static final ComputeCache<Class<?>, Supplier<?>> REFLECTION_CACHE = new ComputeCache<>(512);
 
     static volatile boolean jit = true;
 
-    // JDK 9 及更高版本通过 MethodHandles.privateLookupIn(...) 更适应 JPMS
-    private static Method findPrivateLookupIn() {
-        try {
-            return MethodHandles.class.getMethod("privateLookupIn", Class.class, MethodHandles.Lookup.class);
-        } catch (Exception e) {
-            return null; // JDK 8 将 PRIVATE_LOOKUP_IN 赋为 null
-        }
-    }
-
     /**
-     * 全局配置是否使用 jit，默认值为 true
+     * 全局配置对象创建策略：true 优先使用 Lambda，false 仅使用普通反射。
+     * 默认值为 true，不影响 JVM 自身的 JIT 编译。
      */
     public static void setJit(boolean jit) {
         InstanceFactory.jit = jit;
     }
 
+    /**
+     * 通过可访问的 public 无参构造器创建新对象。
+     */
     @SuppressWarnings("unchecked")
     public <T> T get(Class<T> type) {
         if (jit) {
             return ((Supplier<T>) CACHE.computeIfAbsent(type, this::createSupplier)).get();
         } else {
-            return newInstance(type);
+            return ((Supplier<T>) REFLECTION_CACHE.computeIfAbsent(type, this::createReflectionSupplier)).get();
         }
     }
 
     @SuppressWarnings("unchecked")
     private <T> Supplier<T> createSupplier(Class<T> type) {
+        Constructor<T> constructor = getConstructor(type);
+
         try {
-            // 获取 Lookup。JDK 8 使用 lookup()，JDK 9 以上使用 privateLookupIn()
-            MethodHandles.Lookup lookup = MethodHandles.lookup();
-            if (PRIVATE_LOOKUP_IN != null) {
-                lookup = (MethodHandles.Lookup) PRIVATE_LOOKUP_IN.invoke(null, type, lookup);
+            if (!Modifier.isAbstract(type.getModifiers()) && isVisible(type)) {
+                MethodHandles.Lookup lookup = MethodHandles.lookup();
+                MethodHandle handle = lookup.unreflectConstructor(constructor);
+                CallSite callSite = LambdaMetafactory.metafactory(
+                        lookup,
+                        "get",
+                        METHOD_TYPE_SUPPLIER,
+                        METHOD_TYPE_OBJECT,
+                        handle,
+                        MethodType.methodType(type)
+                );
+                return (Supplier<T>) callSite.getTarget().invokeExact();
             }
 
-            // 获取无参构造器的 MethodHandle，无权访问抛出异常
-            MethodHandle handle = lookup.findConstructor(type, METHOD_TYPE_VOID);
-            MethodType methodType = MethodType.methodType(type);
-
-            // LambdaMetaFactory 包成 Supplier.get() 促使 JIT 内联优化
-            CallSite callSite = LambdaMetafactory.metafactory(
-                    lookup,
-                    "get",
-                    METHOD_TYPE_SUPPLIER,
-                    METHOD_TYPE_OBJECT,
-                    handle,
-                    methodType
-            );
-
-            return (Supplier<T>) callSite.getTarget().invokeExact();
-
+        } catch (Error e) {
+            throw e;
         } catch (Throwable t) {
-            throw new RuntimeException("Failed to prepare constructor for " + type, t);
+            // Lambda 仅作性能优化，反射是基础创建方式，负责兜底。
+        }
+
+        // 只在准备阶段回退，构造器执行失败时不重试。
+        return () -> newInstance(constructor);
+    }
+
+    /**
+     * 获取 public 无参构造器，不改变访问权限，是否可调用由后续访问检查决定。
+     */
+    private <T> Constructor<T> getConstructor(Class<T> type) {
+        try {
+            return type.getConstructor();
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private <T> T newInstance(Class<T> type) {
+    private boolean isVisible(Class<?> type) throws ClassNotFoundException {
+        // Lambda 使用工厂的类加载器解析目标类。
+        // 同名类可能由不同 ClassLoader 加载，必须比较 Class 身份。
+        return Class.forName(type.getName(), false, InstanceFactory.class.getClassLoader()) == type;
+    }
+
+    private <T> Supplier<T> createReflectionSupplier(Class<T> type) {
+        Constructor<T> constructor = getConstructor(type);
+        return () -> newInstance(constructor);
+    }
+
+    // 使用静态方法，避免反射 Supplier 捕获工厂实例。
+    private static <T> T newInstance(Constructor<T> constructor) {
         try {
-            return type.getDeclaredConstructor().newInstance();
+            return constructor.newInstance();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 }
-
-
 
 

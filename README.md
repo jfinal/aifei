@@ -84,6 +84,10 @@ public class VipService {
 }
 ```
 
+由 `InstanceFactory` 创建的 Service 必须具有工厂可访问的 `public` 无参构造器，工厂不会扩大访问权限。上例未声明构造器，Java 会为该 `public` 类提供默认的 `public` 无参构造器；如果声明了有参构造器，需要显式保留 `public` 无参构造器。
+
+工厂默认优先使用 Lambda 创建对象，也可在启动时调用 `InstanceFactory.setJit(false)` 选择普通反射。该设置对 `InstanceFactory` 全局生效，不影响 JVM 的 JIT 编译。
+
 ### 配置
 
 Aifei 配置在 AifeiConfig 接口中集中管理。
@@ -464,7 +468,5 @@ Just Service 将代码结构压缩至最小，使大模型在生成代码时可�
 为尽早发布，当前文档优先覆盖核心理念与快速上手。HIO、AI Coding 实践、完整工程示例等内容将在后续持续补充。
 
 如需提前体验更完整的企业级实现，可订阅官方唯一 VIP 会员：[Aifei VIP 订阅](https://aifei.cn)
-
-
 
 
