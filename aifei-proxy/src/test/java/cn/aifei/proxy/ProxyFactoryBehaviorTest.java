@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,18 +38,34 @@ import static org.junit.Assert.assertTrue;
 @RunWith(Parameterized.class)
 public class ProxyFactoryBehaviorTest {
 
-    @Parameterized.Parameters(name = "{0}")
+    @Parameterized.Parameters(name = "{0}, jit={2}")
     public static Collection<Object[]> proxyFactories() {
         return Arrays.asList(new Object[][] {
-                {"cglib", new CglibProxyFactory()},
-                {"javassist", new JavassistProxyFactory()}
+                {"cglib", new CglibProxyFactory(), true},
+                {"cglib", new CglibProxyFactory(), false},
+                {"javassist", new JavassistProxyFactory(), true},
+                {"javassist", new JavassistProxyFactory(), false}
         });
     }
 
     private final ProxyFactory factory;
+    private final boolean jit;
+    private boolean previousJit;
 
-    public ProxyFactoryBehaviorTest(String name, ProxyFactory factory) {
+    public ProxyFactoryBehaviorTest(String name, ProxyFactory factory, boolean jit) {
         this.factory = factory;
+        this.jit = jit;
+    }
+
+    @org.junit.Before
+    public void configureCreationMode() {
+        previousJit = InstanceFactory.jit;
+        InstanceFactory.setJit(jit);
+    }
+
+    @After
+    public void restoreCreationMode() {
+        InstanceFactory.setJit(previousJit);
     }
 
     @Test

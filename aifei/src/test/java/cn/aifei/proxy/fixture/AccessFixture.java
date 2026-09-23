@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-package cn.aifei.proxy;
+package cn.aifei.proxy.fixture;
 
-/**
- * NoProxyFactory 不实现 aop 代理，仅创建对象
- */
-public class NoProxyFactory implements ProxyFactory {
+public class AccessFixture {
+    public static Class<?> inaccessibleClass() {
+        return HiddenService.class;
+    }
 
-    InstanceFactory instanceFactory = new InstanceFactory();
-
-    @Override
-    public <T> T get(Class<T> target) {
-        return instanceFactory.get(target);
+    private static class HiddenService {
+        public HiddenService() {}
     }
 }
-
