@@ -22,7 +22,8 @@ import org.slf4j.spi.LocationAwareLogger;
 import java.util.function.Supplier;
 
 /**
- * Slf4jLog
+ * 适配实现了 LocationAwareLogger 的 SLF4J 后端，如 Logback、Log4j 2、JUL。
+ * 应在启动线程完成 SLF4J 初始化后，再启动使用日志的业务线程。
  */
 public class Slf4jLog implements Log {
 
