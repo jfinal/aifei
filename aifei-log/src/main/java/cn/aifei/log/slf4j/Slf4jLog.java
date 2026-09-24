@@ -33,10 +33,7 @@ public class Slf4jLog implements Log {
      * 无参构造仅在 static 属性中使用，避免性能消耗
      */
     public Slf4jLog() {
-        // Class<?> clazz = StackLocator.getInstance().getCallerClass(4);
-        // StackLocator API（Log4j 2.12+）动态计算深度：
-        Class<?> clazz = StackLocator.getInstance().getCallerClass(Log.class);
-        log = (LocationAwareLogger) LoggerFactory.getLogger(clazz != null ? clazz : Slf4jLog.class);
+        log = (LocationAwareLogger) LoggerFactory.getLogger(getCallerName());
     }
 
     public Slf4jLog(Class<?> clazz) {
@@ -45,6 +42,31 @@ public class Slf4jLog implements Log {
 
     public Slf4jLog(String name) {
         log = (LocationAwareLogger) LoggerFactory.getLogger(name);
+    }
+
+    private static String getCallerName() {
+        StackTraceElement[] stack = new Throwable().getStackTrace();
+        int start = 0;
+        // 优先以 Log.get 为边界，避免将自定义日志工厂识别为业务调用者。
+        for (int i = 0; i < stack.length; i++) {
+            if (stack[i].getClassName().equals(Log.class.getName())) {
+                start = i + 1;
+                break;
+            }
+        }
+        for (int i = start; i < stack.length; i++) {
+            String name = stack[i].getClassName();
+            if (!name.equals(FQCN) && !name.equals(Slf4jLogFactory.class.getName())
+                    && !name.equals(Log.class.getName())
+                    && !name.startsWith("java.lang.reflect.")
+                    && !name.startsWith("jdk.internal.reflect.")
+                    && !name.startsWith("sun.reflect.")
+                    && !name.equals("java.lang.Class")
+                    && !name.startsWith("java.lang.invoke.")) {
+                return name;
+            }
+        }
+        return FQCN;
     }
 
     @Override
