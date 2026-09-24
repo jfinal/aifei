@@ -22,19 +22,29 @@ import java.lang.reflect.Modifier;
 import java.util.function.Supplier;
 
 /**
- * InstanceUtil 用于通过可访问的 public 无参构造方法创建对象。
+ * 通过对工厂可访问的 public 无参构造器创建对象。
  *
  * <pre>
  * 设计：
- *  1: 优先使用 LambdaMetafactory + Supplier，为 JIT 内联提供优化机会。
+ *  1: 默认优先使用 LambdaMetafactory 创建 Supplier，为 JVM 的 JIT 内联提供优化机会。
  *
- *  2: 按目标类型与 jit 模式分别缓存创建策略，每次调用仍创建新对象。
+ *  2: 按目标 Class 缓存 Supplier，由所有工厂实例共享；jit=true 与 jit=false 使用独立缓存。
+ *     仅缓存创建策略，每次成功调用 get() 都返回新对象。
  *
- *  3: Lambda 不适用或准备阶段抛出非 Error 异常时回退到普通反射，不扩大访问权限。
+ *  3: 获取 public 无参构造器后，若不满足 Lambda 的使用条件，或准备 Lambda Supplier
+ *     时抛出非 Error 异常，则回退到普通反射；Error 直接抛出。
+ *     构造器执行失败时不回退、不重试。
+ *
+ *  4: 遵守 Java 访问检查，不通过 setAccessible(true) 绕过构造器的访问限制。
+ *
+ *  5: 构造器执行时抛出的异常（含 Error）：Lambda 路径原样抛出，
+ *     包括 get() 未声明的受检异常；反射路径包装为
+ *     RuntimeException -> InvocationTargetException -> 原异常。
  * </pre>
  */
 public class InstanceUtil {
 
+    // Lambda 工厂方法的类型为 ()Supplier，Supplier.get() 擦除后的方法类型为 ()Object。
     static final MethodType METHOD_TYPE_SUPPLIER = MethodType.methodType(Supplier.class);
     static final MethodType METHOD_TYPE_OBJECT = MethodType.methodType(Object.class);
 
@@ -44,15 +54,17 @@ public class InstanceUtil {
     static volatile boolean jit = true;
 
     /**
-     * 全局配置对象创建策略：true 优先使用 Lambda，false 仅使用普通反射。
-     * 默认值为 true，不影响 JVM 自身的 JIT 编译。
+     * 设置所有工厂实例共用的创建策略开关，默认值为 true。
+     * true 优先使用 Lambda，false 仅使用普通反射。
+     * 切换后，后续 get() 调用使用对应缓存；不影响 JVM 自身的 JIT 编译。
      */
     public static void setJit(boolean jit) {
         InstanceUtil.jit = jit;
     }
 
     /**
-     * 通过可访问的 public 无参构造器创建新对象。
+     * 通过对工厂可访问的 public 无参构造器创建新对象。
+     * 构造器异常的传播方式取决于实际创建路径，详见类说明。
      */
     @SuppressWarnings("unchecked")
     public static <T> T get(Class<T> type) {
@@ -65,6 +77,7 @@ public class InstanceUtil {
 
     @SuppressWarnings("unchecked")
     private static <T> Supplier<T> createSupplier(Class<T> type) {
+        // 两种创建路径都需要 public 无参构造器；查找失败直接抛出，不进入 Lambda 回退逻辑。
         Constructor<T> constructor = getConstructor(type);
 
         try {
@@ -79,33 +92,37 @@ public class InstanceUtil {
                         handle,
                         MethodType.methodType(type)
                 );
+                // invokeExact 要求调用点返回类型精确匹配 Supplier，强转必须直接作用于调用表达式。
+                // 若先按 Object 接收再强转，会抛出 WrongMethodTypeException 并回退到反射。
                 return (Supplier<T>) callSite.getTarget().invokeExact();
             }
 
         } catch (Error e) {
             throw e;
         } catch (Throwable t) {
-            // Lambda 仅作性能优化，反射是基础创建方式，负责兜底。
+            // 放弃本次 Lambda 优化，改用下面的反射策略；此时尚未执行目标构造器。
         }
 
-        // 只在准备阶段回退，构造器执行失败时不重试。
+        // 构造器延迟到 Supplier.get() 时执行，执行失败不会再次进入上面的回退逻辑。
         return () -> newInstance(constructor);
     }
 
     /**
-     * 获取 public 无参构造器，不改变访问权限，是否可调用由后续访问检查决定。
+     * 查找 public 无参构造器，不修改访问权限。
+     * 构造器为 public 不代表其声明类对工厂可访问，调用权限仍需后续检查。
      */
     private static <T> Constructor<T> getConstructor(Class<T> type) {
         try {
             return type.getConstructor();
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("No public no-argument constructor found for " + type.getName(), e);
         }
     }
 
     private static boolean isVisible(Class<?> type) throws ClassNotFoundException {
-        // Lambda 使用工厂的类加载器解析目标类。
-        // 同名类可能由不同 ClassLoader 加载，必须比较 Class 身份。
+        // 生成的 Lambda 通过 InstanceUtil 的类加载器解析目标类。
+        // 比较 Class 对象身份，避免误用其他类加载器定义的同名类；此处不检查成员访问权限。
+        // initialize=false，避免检查可见性时触发目标类初始化。
         return Class.forName(type.getName(), false, InstanceUtil.class.getClassLoader()) == type;
     }
 
@@ -114,14 +131,13 @@ public class InstanceUtil {
         return () -> newInstance(constructor);
     }
 
-    // 使用静态方法，避免反射 Supplier 捕获工厂实例。
+    // 保持静态，让缓存的反射 Supplier 只捕获 Constructor，避免长期持有工厂实例。
     private static <T> T newInstance(Constructor<T> constructor) {
         try {
             return constructor.newInstance();
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to create instance of " + constructor.getDeclaringClass().getName(), e);
         }
     }
 }
-
 
