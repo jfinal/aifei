@@ -39,7 +39,7 @@ public class MethodInfo {
         this.isVarArgs = method.isVarArgs();
         this.paraTypes = method.getParameterTypes();
 
-        // 支持高版本 JDK 的安全策略
+        // 保留对非 public 类的支持；未开放的模块仍会拒绝访问。
         method.setAccessible(true);
     }
 
