@@ -59,10 +59,10 @@ public class Slf4jLog implements Log {
             String name = stack[i].getClassName();
             if (!name.equals(FQCN) && !name.equals(Slf4jLogFactory.class.getName())
                     && !name.equals(Log.class.getName())
+                    && !name.equals(Class.class.getName())
                     && !name.startsWith("java.lang.reflect.")
                     && !name.startsWith("jdk.internal.reflect.")
                     && !name.startsWith("sun.reflect.")
-                    && !name.equals("java.lang.Class")
                     && !name.startsWith("java.lang.invoke.")) {
                 return name;
             }
