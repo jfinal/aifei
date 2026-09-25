@@ -135,6 +135,12 @@ public class Router {
      * 应用场景：对性能有极致要求，或者路由极少但 Class 文件却极多。
      */
     public void add(String targetPath, Class<?> target, Interceptor[] routesInterceptors) {
+        int modifiers = target.getModifiers();
+        if (!Modifier.isPublic(modifiers) || Modifier.isAbstract(modifiers)) {
+            log.warn("Skipping non-public or abstract route target class: " + target.getName());
+            return;
+        }
+
         injectRoutesInterceptor(routesInterceptors);
         buildRoute(targetPath, target, routesInterceptors);
     }
