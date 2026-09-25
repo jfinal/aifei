@@ -20,6 +20,7 @@ import cn.aifei.log.Log;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.spi.ExtendedLogger;
+import org.apache.logging.log4j.util.StackLocator;
 import java.util.function.Supplier;
 
 /**
@@ -34,22 +35,30 @@ public class Log4jLog implements Log {
      * 无参构造仅在 static 属性中使用，避免性能消耗
      */
     public Log4jLog() {
-        // Class<?> clazz = StackLocatorUtil.getCallerClass(4);
-        // StackLocator API（Log4j 2.12+）动态计算深度：
-        Class<?> clazz = org.apache.logging.log4j.util.StackLocator.getInstance().getCallerClass(Log.class);
+        StackLocator locator = StackLocator.getInstance();
+        Class<?> clazz = locator.getCallerClass(Log.class);
+        // 直接调用构造方法或日志工厂时，调用栈中没有 Log.get。
+        if (clazz == null || clazz == Object.class) {
+            clazz = locator.getCallerClass(Log4jLog.class, Log4jLog::isCallerClass);
+        }
         this.log = (ExtendedLogger) LogManager.getLogger(clazz != null ? clazz : Log4jLog.class);
     }
 
     public Log4jLog(Class<?> clazz) {
-        // 引入 log4j-slf4j2-impl 桥接依赖后可能出现类型转换异常，可使用此方案
-        // LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
-        // this.log = ctx.getLogger(clazz.getName());
-
         this.log = (ExtendedLogger) LogManager.getLogger(clazz);
     }
 
     public Log4jLog(String name) {
         this.log = (ExtendedLogger) LogManager.getLogger(name);
+    }
+
+    private static boolean isCallerClass(Class<?> clazz) {
+        String name = clazz.getName();
+        return clazz != Log4jLogFactory.class && clazz != Class.class
+                && !name.startsWith("java.lang.reflect.")
+                && !name.startsWith("jdk.internal.reflect.")
+                && !name.startsWith("sun.reflect.")
+                && !name.startsWith("java.lang.invoke.");
     }
 
     @Override
