@@ -38,6 +38,7 @@ import java.util.function.Predicate;
  * <pre>
  * 路由扫描设计：
  *  1: 参数 String basePackage 为扫描基础包，scan 方法将扫描该包及其子包所有声明了 "类级别 @Path 注解" 的目标。
+ *     非 public 或抽象（含接口）的目标类将被跳过并输出警告日志。
  *
  *  2: 参数 Interceptor[] interceptors 为 Routes 级别拦截器，当前扫描方法扫描到的目标类都将被配置上这些拦截器。
  *      Routes 级别拦截器调用时机早于全局拦截器，将最先被调用。
@@ -156,7 +157,20 @@ public class Router {
     public void scan(String basePackage, Interceptor[] routesInterceptors, Predicate<Class<?>> skip) {
         injectRoutesInterceptor(routesInterceptors);
 
-        Set<Class<?>> scannedSet = new Scanner().scan(basePackage, c -> c.isAnnotationPresent(Path.class));
+        Set<Class<?>> scannedSet = new Scanner().scan(basePackage, c -> {
+            if (!c.isAnnotationPresent(Path.class)) {
+                return false;
+            }
+
+            int modifiers = c.getModifiers();
+            if (!Modifier.isPublic(modifiers) || Modifier.isAbstract(modifiers)) {
+                log.warn("Skipping non-public or abstract @Path class: " + c.getName());
+                return false;
+            }
+
+            return true;
+        });
+
         printScannedClass(scannedSet);
         scannedSet.removeAll(allScannedSet);        // 去重：若多次被扫描到，则拦截器配置以第一次被扫描时为准
         allScannedSet.addAll(scannedSet);           // 添加到大集合
