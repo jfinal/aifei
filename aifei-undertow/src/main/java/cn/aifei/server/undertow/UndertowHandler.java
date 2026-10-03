@@ -21,6 +21,7 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import io.undertow.server.handlers.resource.ResourceManager;
+import io.undertow.util.MimeMappings;
 import java.util.Objects;
 
 /**
@@ -52,7 +53,11 @@ public class UndertowHandler implements HttpHandler {
 
     public void setResourceManager(ResourceManager resourceManager) {
         Objects.requireNonNull(resourceManager, "resourceManager can not be null.");
-        resourceHandler = new ResourceHandler(resourceManager);
+
+        MimeMappings mjs = MimeMappings.builder(true)
+                .addMapping("mjs", "application/javascript")
+                .build();
+        resourceHandler = new ResourceHandler(resourceManager).setMimeMappings(mjs);
     }
 
     public void init(Dispatcher<HttpServerExchange, Void, ?, ?> dispatcher) {
