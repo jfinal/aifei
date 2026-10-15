@@ -28,15 +28,11 @@ import java.lang.reflect.Type;
  * 但与传统注入不同的是注入时可利用当前请求的上下文 Input、Output，便于将数据融入流程。
  *
  * <pre>
- * Argument 本质是依赖注入，常规实参注入只是最朴素用法。若当成依赖注入使用，拥有无限想象空间，例如：
+ * Argument 本质是 Method 级依赖注入。常规注入只是最朴素用法，若当成 Method 级依赖注入使用，拥有无限想象空间，
+ * 例如：
  *  1: 根据用户登录会话信息，注入当前登录用户对象，无缝对接业务层，地表最爽登录会话实现。
  *  2: 注入 Sse，实现大模型流式交互。
- *  3: 与对三方对接时将 json 回转化为 Bean 交给业务层处理。
- *  4: 注入 Out 实现 excel 导出与文件下载。
- *  5: 注入可以持有 lambda 的对象，将用户逻辑先放在 lambda，然后在 Handler 中延迟处理，
- *     从而彻底消除业务层对 HttpServletRequest、HttpServletResponse、HttpServerExchange
- *     等等这类与业务无关类型的依赖，让业务变得纯粹。
- *     例如：Out.sendFile(...) 持有发送文件的 lambda 消除掉了对 HttpServerExchange 的依赖
+ *  3: 对接第三方系统时，将 json 转化为 Bean 后注入给业务层。
  * </pre>
  */
 public abstract class Argument<I extends Input, O extends Output, T> {
