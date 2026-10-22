@@ -16,7 +16,8 @@ Production code lives under each module's `src/main/java`, with packages under `
 - `mvn -pl aifei-db test`: runs tests for one module.
 - `mvn -pl aifei-db -am test`: also builds required upstream modules.
 - `mvn -pl aifei-all package`: creates the shaded all-in-one artifact.
-- `mvn -Pcentral-release verify`: performs signed release verification and Central validation.
+- `mvn -Pcentral-release verify`: builds and tests all modules and signs release artifacts locally.
+- `mvn -Pcentral-release deploy`: uploads signed release artifacts to the Central Portal and waits for validation; with `autoPublish=false`, publishing requires manual confirmation in the Portal.
 
 ## Coding Style & Naming Conventions
 
