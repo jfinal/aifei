@@ -40,6 +40,8 @@ public class ArgumentKit {
 
     /**
      * 注册 Argument 实现
+     * 此处有意不通过泛型关联注册类型与 Argument 的返回类型，以支持按目标参数类型动态解析。
+     * 例如 ArrayList.class 可注册 ListArgument.class，但解析器须保证实际返回值与 ArrayList 兼容。
      */
     public ArgumentKit register(Class<?> type, Class<? extends Argument<?, ?, ?>> argument) {
         factory.register(type, argument);
