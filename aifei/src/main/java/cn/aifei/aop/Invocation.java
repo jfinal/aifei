@@ -98,14 +98,9 @@ public class Invocation {
                 try {
                     returnValue = method.invoke(target, args);
                 } catch (InvocationTargetException e) {
-                    Throwable targetException = e.getTargetException();
-                    if (targetException instanceof Exception) {
-                        throw (Exception) targetException;
-                    }
-                    if (targetException instanceof Error) {
-                        throw (Error) targetException;
-                    }
-                    throw new RuntimeException(targetException);
+                    // 必须在此解包 Exception，不能延后到 Handler，否则拦截器和事务回调无法按原类型处理。
+                    Throwable cause = e.getCause();
+                    throw cause instanceof Exception ? (Exception) cause : e;
                 }
 
             } else {
