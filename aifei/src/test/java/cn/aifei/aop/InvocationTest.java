@@ -70,13 +70,37 @@ public class InvocationTest {
     }
 
     @Test
-    public void actionErrorKeepsReflectionWrapper() throws Exception {
-        assertReflectionWrapper(new AssertionError("action error"));
+    public void actionErrorReachesInterceptorAndCallerUnchanged() throws Exception {
+        AssertionError failure = new AssertionError("action error");
+        Error[] observed = new Error[1];
+        Invocation invocation = action(new Target(failure), inv -> {
+            try {
+                inv.invoke();
+            } catch (Error actual) {
+                observed[0] = actual;
+                throw actual;
+            }
+        });
+
+        try {
+            invocation.invoke();
+            fail("Expected AssertionError");
+        } catch (AssertionError actual) {
+            assertSame(failure, actual);
+        }
+        assertSame(failure, observed[0]);
     }
 
     @Test
-    public void actionDirectThrowableKeepsReflectionWrapper() throws Exception {
-        assertReflectionWrapper(new Throwable("direct throwable"));
+    public void actionDirectThrowableIsWrappedInRuntimeException() throws Exception {
+        Throwable failure = new Throwable("direct throwable");
+
+        try {
+            action(new Target(failure)).invoke();
+            fail("Expected RuntimeException");
+        } catch (RuntimeException actual) {
+            assertSame(failure, actual.getCause());
+        }
     }
 
     @Test
@@ -127,15 +151,6 @@ public class InvocationTest {
             fail("Expected " + expected.getClass().getName());
         } catch (Exception actual) {
             assertSame(expected, actual);
-        }
-    }
-
-    private static void assertReflectionWrapper(Throwable expected) throws Exception {
-        try {
-            action(new Target(expected)).invoke();
-            fail("Expected InvocationTargetException");
-        } catch (InvocationTargetException actual) {
-            assertSame(expected, actual.getCause());
         }
     }
 

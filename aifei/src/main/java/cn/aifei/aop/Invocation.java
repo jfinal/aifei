@@ -98,9 +98,15 @@ public class Invocation {
                 try {
                     returnValue = method.invoke(target, args);
                 } catch (InvocationTargetException e) {
-                    // 必须在此解包 Exception，不能延后到 Handler，否则拦截器和事务回调无法按原类型处理。
+                    // 只拆除当前反射调用的一层包装，Exception 和 Error 原样传播给拦截器与事务。
                     Throwable cause = e.getCause();
-                    throw cause instanceof Exception ? (Exception) cause : e;
+                    if (cause instanceof Exception) {
+                        throw (Exception) cause;
+                    }
+                    if (cause instanceof Error) {
+                        throw (Error) cause;
+                    }
+                    throw new RuntimeException(cause);
                 }
 
             } else {

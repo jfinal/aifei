@@ -18,12 +18,14 @@ package cn.aifei.db.transaction;
 
 import cn.aifei.aop.Interceptor;
 import cn.aifei.aop.Invocation;
+import cn.aifei.argument.Argument;
 import cn.aifei.db.core.DbConfig;
 import cn.aifei.db.core.DbKit;
 import cn.aifei.log.Log;
 import cn.aifei.log.LogFactory;
 import cn.aifei.log.LogKit;
 import cn.aifei.proxy.Callback;
+import cn.aifei.router.Action;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -132,6 +134,31 @@ public class TransactionalTest {
     }
 
     @Test
+    public void actionErrorRollsBackWithoutInvokingExceptionCallback() throws Exception {
+        ErrorAction target = new ErrorAction();
+        AtomicReference<Exception> callbackArgument = new AtomicReference<>();
+        DbKit.getThreadLocalConfig().setOnTransactionException(exception -> {
+            callbackArgument.set(exception);
+            return "fallback";
+        });
+        Action action = new Action("/test/run", "/test", new Interceptor[]{new Transactional()},
+                ErrorAction.class, ErrorAction.class.getMethod("run"), new Argument<?, ?, ?>[0]);
+        Invocation invocation = new Invocation(action, target, null, null);
+
+        try {
+            invocation.invoke();
+            fail("Expected AssertionError");
+        } catch (AssertionError actual) {
+            assertSame(target.failure, actual);
+        }
+
+        assertNull(callbackArgument.get());
+        assertEquals(0, connection.commitCount);
+        assertEquals(1, connection.rollbackCount);
+        assertNull(Transactional.getTransaction());
+    }
+
+    @Test
     public void nestedTransactionalInvocationRestoresOuterTransaction() throws Exception {
         AtomicReference<Transaction<?>> outerTransaction = new AtomicReference<>();
         Invocation inner = invocation(args -> {
@@ -203,6 +230,14 @@ public class TransactionalTest {
             return '\0';
         }
         return null;
+    }
+
+    public static class ErrorAction {
+        final AssertionError failure = new AssertionError("action error");
+
+        public void run() {
+            throw failure;
+        }
     }
 
     private static final class ConnectionRecorder implements InvocationHandler {
