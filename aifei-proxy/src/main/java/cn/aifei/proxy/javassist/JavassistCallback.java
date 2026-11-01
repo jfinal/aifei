@@ -82,14 +82,14 @@ class JavassistCallback implements MethodHandler {
         try {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
-            Throwable targetException = e.getTargetException();
-            if (targetException instanceof Exception) {
-                throw (Exception) targetException;
+            Throwable cause = e.getCause();
+            if (cause instanceof Exception) {
+                throw (Exception) cause;
             }
-            if (targetException instanceof Error) {
-                throw (Error) targetException;
+            if (cause instanceof Error) {
+                throw (Error) cause;
             }
-            throw new RuntimeException(targetException);
+            throw new RuntimeException(cause);
         }
     }
 }
