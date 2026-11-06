@@ -1,5 +1,7 @@
 # Aifei
 
+**简体中文** | [English](README.en.md)
+
 世界首个 AI Coding 框架。
 
 官网: https://aifei.cn
