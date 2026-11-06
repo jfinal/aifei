@@ -128,6 +128,14 @@ public class AifeiDb {
     }
 
     /**
+     * 设置开启 SQL 压缩功能。参数 separator 为压缩使用的分隔符，常用配置为 ' ' 与 '\n'。
+     */
+    public AifeiDb setSqlCompressorOn(char separator) {
+        config.sqlKit.getEngine().setCompressorOn(separator);
+        return this;
+    }
+
+    /**
      * 配置 DbConfig
      */
     public AifeiDb config(Consumer<DbConfig> consumer) {
