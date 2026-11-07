@@ -74,7 +74,7 @@ public class PostgreSqlDialect extends Dialect {
 
     @Override
     public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
-        int offset = (pageNum - 1) * pageSize;
+        long offset = (pageNum - 1L) * pageSize;
         String findSql = sqlPara.getSql();
         StringBuilder ret = new StringBuilder(findSql.length() + 30);
         ret.append(findSql).append(" LIMIT ").append(pageSize).append(" OFFSET ").append(offset);

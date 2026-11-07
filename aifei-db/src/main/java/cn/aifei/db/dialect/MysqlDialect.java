@@ -54,7 +54,7 @@ public class MysqlDialect extends Dialect {
     @Override
     public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
         // 当前页在 SQL 查询中的起始行号
-        int offset = (pageNum - 1) * pageSize;
+        long offset = (pageNum - 1L) * pageSize;
         String findSql = sqlPara.getSql();
         StringBuilder ret = new StringBuilder(findSql.length() + 30);
         ret.append(findSql).append(" LIMIT ").append(offset).append(", ").append(pageSize);

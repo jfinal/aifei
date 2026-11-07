@@ -56,11 +56,11 @@ public class SqlServerDialect extends Dialect {
 
     @Override
     public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
-        int end = pageNum * pageSize;
+        long end = (long) pageNum * pageSize;
         if (end <= 0) {
             end = pageSize;
         }
-        int begin = (pageNum - 1) * pageSize;
+        long begin = (pageNum - 1L) * pageSize;
         if (begin < 0) {
             begin = 0;
         }

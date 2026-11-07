@@ -71,14 +71,14 @@ public class SqliteDialect extends Dialect {
 		return super.resolveColumnValueClassName(resultSetMetaData, columnIndex, jdbcType);
 	}
 
-	@Override
-	public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
-		int offset = (pageNum - 1) * pageSize;
-		String findSql = sqlPara.getSql();
-		StringBuilder ret = new StringBuilder(findSql.length() + 30);
-		ret.append(findSql).append(" LIMIT ").append(offset).append(", ").append(pageSize);
-		return new SqlPara(ret.toString(), sqlPara.getPara());
-	}
+    @Override
+    public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
+        long offset = (pageNum - 1L) * pageSize;
+        String findSql = sqlPara.getSql();
+        StringBuilder ret = new StringBuilder(findSql.length() + 30);
+        ret.append(findSql).append(" LIMIT ").append(offset).append(", ").append(pageSize);
+        return new SqlPara(ret.toString(), sqlPara.getPara());
+    }
 
 	/**
 	 * SQLite 没有独立的布尔存储类型，Xerial JDBC 的 getObject(int) 会根据

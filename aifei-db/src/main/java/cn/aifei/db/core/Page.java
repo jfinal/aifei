@@ -28,7 +28,7 @@ public class Page<T> implements Serializable {
     private int pageSize;
 
     private long totalRows;
-    private int totalPages;
+    private long totalPages;
 
     private List<T> rows;   // 语义对齐 totalRows
 
@@ -43,7 +43,7 @@ public class Page<T> implements Serializable {
      * @param totalPages the total pages of paginate
      * @param rows the rows of paginate result
      */
-    public Page(int pageNum, int pageSize, long totalRows, int totalPages, List<T> rows) {
+    public Page(int pageNum, int pageSize, long totalRows, long totalPages, List<T> rows) {
         this.pageNum = pageNum;
         this.pageSize = pageSize;
         this.totalRows = totalRows;
@@ -60,7 +60,7 @@ public class Page<T> implements Serializable {
      */
     public Page(int pageNum, int pageSize, long totalRows, List<T> rows) {
         // 取模 % 和除法 / 是整数运算，性能优于浮点运算的 Math.ceil
-        this(pageNum, pageSize, totalRows, (int) (totalRows % pageSize != 0 ? totalRows / pageSize + 1 : totalRows / pageSize), rows);
+        this(pageNum, pageSize, totalRows, totalRows % pageSize != 0 ? totalRows / pageSize + 1 : totalRows / pageSize, rows);
     }
 
     /**
@@ -110,11 +110,11 @@ public class Page<T> implements Serializable {
     /**
      * Return total pages.
      */
-    public int getTotalPages() {
+    public long getTotalPages() {
         return totalPages;
     }
 
-    public void setTotalPages(int totalPages) {
+    public void setTotalPages(long totalPages) {
         this.totalPages = totalPages;
     }
 

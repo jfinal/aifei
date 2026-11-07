@@ -104,8 +104,8 @@ public class H2Dialect extends Dialect {
 
     @Override
     public SqlPara paginate(int pageNum, int pageSize, SqlPara sqlPara) {
-        int start = (pageNum - 1) * pageSize;
-        int end = pageNum * pageSize;
+        long start = (pageNum - 1L) * pageSize;
+        long end = (long) pageNum * pageSize;
 
         String findSql = sqlPara.getSql();
         StringBuilder ret = new StringBuilder(findSql.length() + 150);

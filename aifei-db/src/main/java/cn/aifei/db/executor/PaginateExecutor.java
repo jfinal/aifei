@@ -120,7 +120,7 @@ public class PaginateExecutor {
         if (totalRows == 0) {
             return new Page<>(pageNum, pageSize, 0, 0, new ArrayList<>(0));
         }
-        int totalPages = (int) (totalRows / pageSize);
+        long totalPages = totalRows / pageSize;
         if (totalRows % pageSize != 0) {
             totalPages++;
         }
