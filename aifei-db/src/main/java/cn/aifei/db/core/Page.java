@@ -118,20 +118,12 @@ public class Page<T> implements Serializable {
         this.totalPages = totalPages;
     }
 
-    public boolean isFirstPage() {
+    public boolean firstPage() {
         return pageNum == 1;
     }
 
-    public boolean isLastPage() {
+    public boolean lastPage() {
         return pageNum >= totalPages;
-    }
-
-    public boolean hasPreviousPage() {
-        return pageNum > 1;
-    }
-
-    public boolean hasNextPage() {
-        return pageNum < totalPages;
     }
 
     @Override
