@@ -20,7 +20,8 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * Page 封装分页查询结果
+ * Page 封装分页查询结果。
+ * setter 方法主要用于反序列化，仅还原对应字段，不联动更新其他字段。
  */
 public class Page<T> implements Serializable {
 
@@ -28,9 +29,9 @@ public class Page<T> implements Serializable {
     private int pageSize;
 
     private long totalRows;
-    private long totalPages;
+    private long totalPages;    // 使用 long 类型，总页数可以大过 Integer.MAX_VALUE
 
-    private List<T> rows;   // 语义对齐 totalRows
+    private List<T> rows;       // 语义对齐 totalRows
 
     public Page() {
     }
