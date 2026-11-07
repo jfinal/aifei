@@ -118,14 +118,14 @@ public class PaginateExecutor {
 
     private <T extends AifeiRow<T>> Page<T> paginate(AifeiDao<?, T> dao, int pageNum, int pageSize, long totalRows, Connection connection) throws SQLException {
         if (totalRows == 0) {
-            return new Page<>(pageNum, pageSize, 0, 0, new ArrayList<>(0));
+            return new Page<>(new ArrayList<>(0), pageNum, pageSize, 0, 0);
         }
         long totalPages = totalRows / pageSize;
         if (totalRows % pageSize != 0) {
             totalPages++;
         }
         if (pageNum > totalPages) {
-            return new Page<>(pageNum, pageSize, totalRows, totalPages, new ArrayList<>(0));
+            return new Page<>(new ArrayList<>(0), pageNum, pageSize, totalRows, totalPages);
         }
 
         DbConfig config = dao.config();
@@ -147,7 +147,7 @@ public class PaginateExecutor {
 
             resultSet = preparedStatement.executeQuery();
             List<T> rows = config.getRowFactory().get(dao, resultSet, null);
-            Page<T> ret = new Page<>(pageNum, pageSize, totalRows, totalPages, rows);
+            Page<T> ret = new Page<>(rows, pageNum, pageSize, totalRows, totalPages);
             paginateHook.afterPaginate(dao, ret, toAfterPaginate);
             return ret;
 

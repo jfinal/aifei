@@ -38,13 +38,13 @@ public class Page<T> implements Serializable {
 
     /**
      * Constructor.
+     * @param rows the rows of paginate result
      * @param pageNum the page number
      * @param pageSize the page size
      * @param totalRows the total rows of paginate
      * @param totalPages the total pages of paginate
-     * @param rows the rows of paginate result
      */
-    public Page(int pageNum, int pageSize, long totalRows, long totalPages, List<T> rows) {
+    public Page(List<T> rows, int pageNum, int pageSize, long totalRows, long totalPages) {
         this.pageNum = pageNum;
         this.pageSize = pageSize;
         this.totalRows = totalRows;
@@ -54,14 +54,14 @@ public class Page<T> implements Serializable {
 
     /**
      * Constructor.
+     * @param rows the rows of paginate result
      * @param pageNum the page number
      * @param pageSize the page size
      * @param totalRows the total rows of paginate
-     * @param rows the rows of paginate result
      */
-    public Page(int pageNum, int pageSize, long totalRows, List<T> rows) {
+    public Page(List<T> rows, int pageNum, int pageSize, long totalRows) {
         // 取模 % 和除法 / 是整数运算，性能优于浮点运算的 Math.ceil
-        this(pageNum, pageSize, totalRows, totalRows % pageSize != 0 ? totalRows / pageSize + 1 : totalRows / pageSize, rows);
+        this(rows, pageNum, pageSize, totalRows, totalRows % pageSize != 0 ? totalRows / pageSize + 1 : totalRows / pageSize);
     }
 
     /**

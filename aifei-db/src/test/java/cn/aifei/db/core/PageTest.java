@@ -55,7 +55,7 @@ public class PageTest {
 
     @Test
     public void precomputedTotalPagesRetainsLongRange() {
-        Page<String> page = new Page<>(1, 1, Long.MAX_VALUE, Long.MAX_VALUE, Collections.emptyList());
+        Page<String> page = new Page<>(Collections.emptyList(), 1, 1, Long.MAX_VALUE, Long.MAX_VALUE);
 
         assertEquals(Long.MAX_VALUE, page.getTotalPages());
         assertTrue(page.firstPage());
@@ -66,6 +66,6 @@ public class PageTest {
     }
 
     private Page<String> page(long totalRows, int pageSize) {
-        return new Page<>(1, pageSize, totalRows, Collections.emptyList());
+        return new Page<>(Collections.emptyList(), 1, pageSize, totalRows);
     }
 }
