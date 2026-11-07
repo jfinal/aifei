@@ -69,13 +69,12 @@ public class Settings<I extends Input, O extends Output> {
      * 泛型 P1、P2 保障 Server 与 Dispatcher 之间传递的数据类型一致。
      * 泛型 I、O 保障 Dispatcher 与 Settings 类的数据类型一致，从而保障与 AifeiConfig 实现类的数据类型一致。
      */
-    public <P1, P2> Settings<I, O> setServer(Server<P1, P2> server, Dispatcher<P1, P2, I, O> dispatcher) {
+    public <P1, P2> void setServer(Server<P1, P2> server, Dispatcher<P1, P2, I, O> dispatcher) {
         Objects.requireNonNull(server, "server can not be null.");
         Objects.requireNonNull(dispatcher, "dispatcher can not be null.");
         server.init(dispatcher);
         this.server = server;
         this.dispatcher = dispatcher;
-        return this;
     }
 
     /**
@@ -202,6 +201,4 @@ public class Settings<I extends Input, O extends Output> {
         return downloadPath;
     }
 }
-
-
 
