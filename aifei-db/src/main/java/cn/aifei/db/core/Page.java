@@ -25,13 +25,13 @@ import java.util.List;
  */
 public class Page<T> implements Serializable {
 
+    private List<T> rows;       // 语义对齐 totalRows
+
     private int pageNum;
     private int pageSize;
 
     private long totalRows;
     private long totalPages;    // 使用 long 类型，总页数可以大过 Integer.MAX_VALUE
-
-    private List<T> rows;       // 语义对齐 totalRows
 
     public Page() {
     }
@@ -45,11 +45,11 @@ public class Page<T> implements Serializable {
      * @param totalPages the total pages of paginate
      */
     public Page(List<T> rows, int pageNum, int pageSize, long totalRows, long totalPages) {
+        this.rows = rows;
         this.pageNum = pageNum;
         this.pageSize = pageSize;
         this.totalRows = totalRows;
         this.totalPages = totalPages;
-        this.rows = rows;
     }
 
     /**
